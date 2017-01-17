@@ -15,7 +15,7 @@ def generate_icon_metadata(tag, var_name):
     name_dict = dict()
     for icon in result['icons']:
         id_list.append(icon['id'])
-        name_dict[icon['name']] = icon['id']
+        name_dict[icon['name'].lower()] = icon['id']
 
     icon_metadata = dict()
     icon_metadata['ids'] = id_list
