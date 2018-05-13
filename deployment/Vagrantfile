@@ -1,0 +1,25 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+$script = <<SCRIPT
+apt-get install p7zip
+SCRIPT
+
+Vagrant.configure(2) do |config|
+
+  # Not using ubuntu/xenial64 because of
+  #  https://bugs.launchpad.net/cloud-images/+bug/1569237
+  config.vm.box = "bento/ubuntu-16.04"
+  config.vm.hostname = "connectbox-deployment-tools"
+
+  config.vm.provider "vmware_fusion" do |vmw|
+    vmw.vmx["memsize"] = 512
+    vmw.vmx["numvcpus"] = 4
+  end
+
+  config.vm.provider "virtualbox" do |vb|
+    vb.memory = "512"
+  end
+
+  config.vm.provision "shell", inline: $script
+end
