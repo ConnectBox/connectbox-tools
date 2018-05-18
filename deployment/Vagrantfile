@@ -3,6 +3,7 @@
 
 $script = <<SCRIPT
 apt-get install p7zip
+apt-get install jq
 SCRIPT
 
 Vagrant.configure(2) do |config|
