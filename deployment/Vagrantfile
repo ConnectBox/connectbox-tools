@@ -3,7 +3,7 @@
 
 $script = <<SCRIPT
 apt-get install p7zip
-apt-get install jq
+apt-get install python3-venv
 SCRIPT
 
 Vagrant.configure(2) do |config|
