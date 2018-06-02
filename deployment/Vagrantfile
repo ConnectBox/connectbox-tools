@@ -4,6 +4,8 @@
 $script = <<SCRIPT
 apt-get install -y p7zip-full
 apt-get install -y python3-venv
+apt-get install -y python3-pip
+pip3 install pygithub
 SCRIPT
 
 Vagrant.configure(2) do |config|
@@ -13,6 +15,7 @@ Vagrant.configure(2) do |config|
   config.vm.box = "bento/ubuntu-16.04"
   config.vm.hostname = "connectbox-deployment-tools"
   config.ssh.forward_agent = true
+  config.vm.post_up_message = "Run 'CONNECTBOX_GITHUB_TOKEN=<whatever-it-is> python3 /vagrant/prepare_release.py' to start the release process"
 
   config.vm.provider "vmware_fusion" do |vmw|
     vmw.vmx["memsize"] = 512
