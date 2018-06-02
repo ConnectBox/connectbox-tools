@@ -79,9 +79,11 @@ def checkout_ansible_repo(tag):
         print("Repo already exists locally. Cannot proceed")
         sys.exit(1)
 
-    repo_addr = "git@github.com:%s/%s.git" % (GITHUB_OWNER, repo)
+    # XXX - use https so that we don't need to have github key
+    # repo_addr = "git@github.com:%s/%s.git" % (GITHUB_OWNER, repo)
+    repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
     # XX - while developing
-    tag = "v20180418"
+    #tag = "v20180418"
     subprocess.run(
         ["git", "clone", "-b", tag, "--depth=1", repo_addr],
         check=True
@@ -108,8 +110,6 @@ def prepare_for_ansible():
                 "ssh",
                 "-l",
                 "root",
-                "-o",
-                "BatchMode=yes",
                 device_addr.exploded,
                 "/bin/true"], check=True)
             can_ssh_to_device = True
@@ -120,7 +120,7 @@ def prepare_for_ansible():
 
 
 def run_ansible(device_addr, tag):
-    print("Run: ansible-playbook -i inventory site.yml "
+    print("Run: ansible-playbook -u root -i inventory site.yml "
           "-e connectbox_version=%s "
           "-e developer_mode=True "
           "-e deploy_sample_content=False "
@@ -128,6 +128,20 @@ def run_ansible(device_addr, tag):
           "--limit=%s" %
           (tag, device_addr)
          )
+
+
+def create_img_from_sd(tag):
+    print("Attach SD card from device and confirm it appears as /dev/sdb "
+          "(check dmesg)")
+    # XXX could look to find which model automatically eventually
+    img_name = "nanopi-neo_developer_%s.img" % (tag,)
+    print("sudo /vagrant/shrink-image.sh /dev/sdb ./%s" % (img_name,))
+    return img_name
+
+
+def compress_img(img_name):
+    print("7za a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on "
+          "/vagrant/%s.7z ./%s" % (img_name, img_name))
 
 
 def main():
@@ -139,6 +153,9 @@ def main():
     checkout_ansible_repo(tag)
     device_addr = prepare_for_ansible()
     run_ansible(device_addr, tag)
+    img_name = create_img_from_sd(tag)
+    print("Now, update release notes, inserting changelog and base image name")
+
 
 
 if __name__ == "__main__":
