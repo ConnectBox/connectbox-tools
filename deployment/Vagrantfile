@@ -2,8 +2,8 @@
 # vi: set ft=ruby :
 
 $script = <<SCRIPT
-apt-get install p7zip-full
-apt-get install python3-venv
+apt-get install -y p7zip-full
+apt-get install -y python3-venv
 SCRIPT
 
 Vagrant.configure(2) do |config|
