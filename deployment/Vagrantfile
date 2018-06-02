@@ -2,7 +2,7 @@
 # vi: set ft=ruby :
 
 $script = <<SCRIPT
-apt-get install p7zip
+apt-get install p7zip-full
 apt-get install python3-venv
 SCRIPT
 
