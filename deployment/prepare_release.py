@@ -34,9 +34,9 @@ def get_env_variable(var_name):
 
 
 def generate_tag_string():
-    # default_tag = datetime.utcnow().strftime("v%Y%m%d")
+    default_tag = datetime.utcnow().strftime("v%Y%m%d")
     # while testing
-    default_tag = datetime.utcnow().strftime("v%Y%m%d%H%M%S")
+    # default_tag = datetime.utcnow().strftime("v%Y%m%d%H%M%S")
     tag = input("Enter tag name for this release [%s]: " % (default_tag,))
     if not tag:
         tag = default_tag
