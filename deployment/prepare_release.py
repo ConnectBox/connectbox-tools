@@ -79,11 +79,7 @@ def checkout_ansible_repo(tag):
         print("Repo already exists locally. Cannot proceed")
         sys.exit(1)
 
-    # XXX - use https so that we don't need to have github key
-    # repo_addr = "git@github.com:%s/%s.git" % (GITHUB_OWNER, repo)
     repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
-    # XX - while developing
-    #tag = "v20180418"
     subprocess.run(
         ["git", "clone", "-b", tag, "--depth=1", repo_addr],
         check=True
@@ -154,6 +150,7 @@ def main():
     device_addr = prepare_for_ansible()
     run_ansible(device_addr, tag)
     img_name = create_img_from_sd(tag)
+    compress_img(img_name)
     print("Now, update release notes, inserting changelog and base image name")
 
 
