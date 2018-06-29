@@ -15,7 +15,7 @@ CONNECTBOX_REPOS = [
     "connectbox-pi",
     "NEO_BatteryLevelShutdown",
     "connectbox-react-icon-client",
-    "connectbox-reports",
+    "access-log-analyzer",
 ]
 # while testing
 #CONNECTBOX_REPOS = ["server-services"]
@@ -118,7 +118,6 @@ def prepare_for_ansible():
 def run_ansible(device_addr, tag):
     print("Run: ansible-playbook -u root -i inventory site.yml "
           "-e connectbox_version=%s "
-          "-e developer_mode=True "
           "-e deploy_sample_content=False "
           "-e do_image_preparation=True "
           "--limit=%s" %
@@ -130,7 +129,7 @@ def create_img_from_sd(tag):
     print("Attach SD card from device and confirm it appears as /dev/sdb "
           "(check dmesg)")
     # XXX could look to find which model automatically eventually
-    img_name = "nanopi-neo_developer_%s.img" % (tag,)
+    img_name = "nanopi-neo_%s.img" % (tag,)
     print("sudo /vagrant/shrink-image.sh /dev/sdb ./%s" % (img_name,))
     return img_name
 
@@ -147,6 +146,8 @@ def main():
     create_tags_in_repos(connectbox_org, CONNECTBOX_REPOS, tag)
     create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
     checkout_ansible_repo(tag)
+    # install packages (pip3 install -r requirements.txt)
+    # create dummy inventory
     device_addr = prepare_for_ansible()
     run_ansible(device_addr, tag)
     img_name = create_img_from_sd(tag)
