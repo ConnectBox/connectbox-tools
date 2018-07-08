@@ -6,8 +6,11 @@ Drive release process for connectbox images
 from datetime import datetime
 import ipaddress
 import os
+from pathlib import Path
+import shutil
 import subprocess
 import sys
+import tempfile
 from github import Github
 
 
@@ -22,6 +25,10 @@ CONNECTBOX_REPOS = [
 GITHUB_OWNER = "ConnectBox"
 #MAIN_REPO = "server-services"
 MAIN_REPO = "connectbox-pi"
+
+NEO_TYPE = "NanoPi NEO"
+RPI_TYPE = "Raspberry Pi"
+UNKNOWN_TYPE = "??"
 
 
 def get_env_variable(var_name):
@@ -76,8 +83,14 @@ def create_github_release(gh_repo, tag):
 def checkout_ansible_repo(tag):
     repo = "connectbox-pi"
     if os.path.isdir(repo):
-        print("Repo already exists locally. Cannot proceed")
-        sys.exit(1)
+        response = input("%s directory already exists. ok to delete? [y/N]: " %
+                         (repo,))
+        if response.lower() != "y":
+            print("OK, not proceeding")
+            sys.exit(0)
+
+        print("Deleting %s" % (repo,))
+        shutil.rmtree(repo)
 
     repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
     subprocess.run(
@@ -85,7 +98,17 @@ def checkout_ansible_repo(tag):
         check=True
     )
 
-def prepare_for_ansible():
+
+def device_type_from_model_str(model_str):
+    if NEO_TYPE in model_str:
+        return NEO_TYPE
+    elif RPI_TYPE in model_str:
+        return RPI_TYPE
+
+    return UNKNOWN_TYPE
+
+
+def get_device_ip_and_type():
     device_addr = ""
     while not device_addr:
         response = input("Enter IP address for build device: ")
@@ -95,41 +118,63 @@ def prepare_for_ansible():
             print(val.args[0])
             device_addr = ""
 
+    # We don't care about known hosts given we touch a new device each time
+    known_hosts = Path("~/.ssh/known_hosts")
+    known_hosts.expanduser().unlink()
+
     can_ssh_to_device = False
+    device_type = UNKNOWN_TYPE
     while not can_ssh_to_device:
         response = input(
             "Ready to attempt passwordless ssh to %s. Enter to start: " %
             (device_addr,)
         )
         try:
-            subprocess.run([
+            proc = subprocess.run([
                 "ssh",
+                "-oStrictHostKeyChecking=no",
                 "-l",
                 "root",
                 device_addr.exploded,
-                "/bin/true"], check=True)
+                "cat /sys/firmware/devicetree/base/model"
+                ], check=True, stdout=subprocess.PIPE)
+            device_type = \
+                device_type_from_model_str(proc.stdout.decode("utf-8"))
             can_ssh_to_device = True
         except subprocess.CalledProcessError as cpe:
             print(cpe.args)
 
-    return device_addr
+    return device_addr.exploded, device_type
 
 
-def run_ansible(device_addr, tag):
-    print("Run: ansible-playbook -u root -i inventory site.yml "
+def create_inventory(device_ip, device_type):
+    if device_type == NEO_TYPE:
+        inventory_str = "%s\n" % (device_ip,)
+    elif device_type == RPI_TYPE:
+        inventory_str = "%s fsdfsdfd\n" % (device_ip,)
+    else:
+        assert "got here with DEVICE_TYPE=%s" % (device_type,)
+        inventory_str = ""
+
+    inventory_fd, inventory_name = tempfile.mkstemp()
+    os.pwrite(inventory_fd, inventory_str.encode("utf-8"), 0)
+    os.close(inventory_fd)
+    return inventory_name
+
+
+def run_ansible(inventory, tag):
+    print("Run: ansible-playbook -u root -i %s site.yml "
           "-e connectbox_version=%s "
           "-e deploy_sample_content=False "
-          "-e do_image_preparation=True "
-          "--limit=%s" %
-          (tag, device_addr)
+          "-e do_image_preparation=True " %
+          (inventory, tag)
          )
 
 
-def create_img_from_sd(tag):
+def create_img_from_sd(tag, device_type):
     print("Attach SD card from device and confirm it appears as /dev/sdb "
           "(check dmesg)")
-    # XXX could look to find which model automatically eventually
-    img_name = "nanopi-neo_%s.img" % (tag,)
+    img_name = "%s_%s.img" % (device_type.replace(" ", "-"), tag,)
     print("sudo /vagrant/shrink-image.sh /dev/sdb ./%s" % (img_name,))
     return img_name
 
@@ -147,10 +192,10 @@ def main():
     create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
     checkout_ansible_repo(tag)
     # install packages (pip3 install -r requirements.txt)
-    # create dummy inventory
-    device_addr = prepare_for_ansible()
-    run_ansible(device_addr, tag)
-    img_name = create_img_from_sd(tag)
+    device_ip, device_type = get_device_ip_and_type()
+    inventory_name = create_inventory(device_ip, device_type)
+    run_ansible(inventory_name, tag)
+    img_name = create_img_from_sd(tag, device_type)
     compress_img(img_name)
     print("Now, update release notes, inserting changelog and base image name")
 
