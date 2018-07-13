@@ -153,10 +153,14 @@ mount $root_dev $root_mount
 rm -rf $root_mount/root/.bash_history
 rm -rf $root_mount/root/.ansible
 rm -rf $root_mount/root/.ssh
+# pip cache
+rm -rf $root_mount/root/.cache
 
 rm -rf $root_mount/home/pi/.bash_history
 rm -rf $root_mount/home/pi/.ansible
 rm -rf $root_mount/home/pi/.ssh
+# pip cache
+rm -rf $root_mount/home/pi/.cache
 
 # empty all of the log files!
 find $root_mount/var/log/ -type f | while read file; do
