@@ -7,6 +7,7 @@ apt-get install -y p7zip-full
 apt-get install -y python3-venv
 apt-get install -y python3-pip
 pip3 install pygithub
+pip3 install click
 SCRIPT
 
 Vagrant.configure(2) do |config|

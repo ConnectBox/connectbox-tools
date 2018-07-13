@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import click
 from github import Github
 
 
@@ -29,15 +30,6 @@ MAIN_REPO = "connectbox-pi"
 NEO_TYPE = "NanoPi NEO"
 RPI_TYPE = "Raspberry Pi"
 UNKNOWN_TYPE = "??"
-
-
-def get_env_variable(var_name):
-    """ Get the environment variable or return exception """
-    try:
-        return os.environ[var_name]
-    except KeyError:
-        error_msg = "Set the %s env variable" % var_name
-        raise RuntimeError(error_msg)
 
 
 def generate_tag_string():
@@ -184,8 +176,10 @@ def compress_img(img_name):
           "/vagrant/%s.7z ./%s" % (img_name, img_name))
 
 
-def main():
-    github_token = get_env_variable("CONNECTBOX_GITHUB_TOKEN")
+@click.command()
+@click.option("--github-token", prompt=True,
+              default=lambda: os.environ.get("CONNECTBOX_GITHUB_TOKEN", ""))
+def main(github_token):
     connectbox_org = Github(github_token).get_organization("ConnectBox")
     tag = generate_tag_string()
     create_tags_in_repos(connectbox_org, CONNECTBOX_REPOS, tag)
@@ -202,4 +196,5 @@ def main():
 
 
 if __name__ == "__main__":
+    # pylint: disable=no-value-for-parameter
     main()
