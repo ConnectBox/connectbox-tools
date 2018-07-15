@@ -104,6 +104,7 @@ def get_device_ip_and_type():
             (device_addr,)
         )
         try:
+            # what about rpi?
             proc = subprocess.run([
                 "ssh",
                 "-oStrictHostKeyChecking=no",
@@ -124,12 +125,12 @@ def get_device_ip_and_type():
 
 
 def create_inventory(device_ip, device_type):
-    click.secho("Creating ansible inventory")
+    click.secho("Creating ansible inventory", fg="blue", bold=True)
     common_args = "deploy_sample_content=False do_image_preparation=True"
     if device_type == NEO_TYPE:
-        inventory_str = "%s %s\n" % (device_ip, common_args)
+        inventory_str = "%s ansible_user=root %s\n" % (device_ip, common_args)
     elif device_type == RPI_TYPE:
-        inventory_str = "%s fsdfsdfd\n" % (device_ip,)
+        inventory_str = "%s ansible_user=pi %s\n" % (device_ip, common_args)
     else:
         assert "got here with DEVICE_TYPE=%s" % (device_type,)
         inventory_str = ""
@@ -141,11 +142,9 @@ def create_inventory(device_ip, device_type):
 
 
 def run_ansible(inventory, tag, repo_location):
-    click.secho("Running ansible")
+    click.secho("Running ansible", fg="blue", bold=True)
     subprocess.run(
         ["ansible-playbook",
-         "-u",
-         "root",
          "-i",
          inventory,
          "-e",
@@ -153,11 +152,12 @@ def run_ansible(inventory, tag, repo_location):
          "site.yml"
         ], cwd=os.path.join(repo_location, "ansible")
     )
-    #print(proc.stdout)
 
 
 def create_img_from_sd(tag, device_type):
-    click.secho("Attach SD card from device", bold=True)
+    click.secho("Attach SD card from device", fg="blue", bold=True)
+    # look for sdb1$ in the last line of /proc/partitions
+    # perhaps prompt?
     sd_seen_in_dmesg = False
     while not sd_seen_in_dmesg:
         sd_seen_in_dmesg = click.confirm("Has SD appeared as /dev/sdb in dmesg?")
