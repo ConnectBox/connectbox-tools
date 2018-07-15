@@ -9,7 +9,6 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
-import sys
 import tempfile
 import click
 from github import Github
@@ -30,21 +29,6 @@ MAIN_REPO = "connectbox-pi"
 NEO_TYPE = "NanoPi NEO"
 RPI_TYPE = "Raspberry Pi"
 UNKNOWN_TYPE = "??"
-
-
-def generate_tag_string():
-    default_tag = datetime.utcnow().strftime("v%Y%m%d")
-    # while testing
-    # default_tag = datetime.utcnow().strftime("v%Y%m%d%H%M%S")
-    tag = input("Enter tag name for this release [%s]: " % (default_tag,))
-    if not tag:
-        tag = default_tag
-
-    response = input("Proceed with tag '%s'? [y/N]: " % (tag,))
-    if response.lower() != "y":
-        print("OK, not proceeding")
-        sys.exit(0)
-    return tag
 
 
 def create_tags_in_repos(connectbox_org, repos, tag):
@@ -75,13 +59,10 @@ def create_github_release(gh_repo, tag):
 def checkout_ansible_repo(tag):
     repo = "connectbox-pi"
     if os.path.isdir(repo):
-        response = input("%s directory already exists. ok to delete? [y/N]: " %
-                         (repo,))
-        if response.lower() != "y":
-            print("OK, not proceeding")
-            sys.exit(0)
+        click.confirm("%s directory already exists. ok to delete?" % (repo,),
+                      abort=True)
 
-        print("Deleting %s" % (repo,))
+        click.echo("Deleting %s" % (repo,))
         shutil.rmtree(repo)
 
     repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
@@ -89,7 +70,7 @@ def checkout_ansible_repo(tag):
         ["git", "clone", "-b", tag, "--depth=1", repo_addr],
         check=True
     )
-
+    return repo
 
 def device_type_from_model_str(model_str):
     if NEO_TYPE in model_str:
@@ -111,8 +92,9 @@ def get_device_ip_and_type():
             device_addr = ""
 
     # We don't care about known hosts given we touch a new device each time
-    known_hosts = Path("~/.ssh/known_hosts")
-    known_hosts.expanduser().unlink()
+    known_hosts = Path("~/.ssh/known_hosts").expanduser()
+    if known_hosts.exists():
+        known_hosts.unlink()
 
     can_ssh_to_device = False
     device_type = UNKNOWN_TYPE
@@ -136,12 +118,16 @@ def get_device_ip_and_type():
         except subprocess.CalledProcessError as cpe:
             print(cpe.args)
 
+    click.secho("Deploying to %s (type: %s)" %
+                (device_addr.exploded, device_type), bold=True)
     return device_addr.exploded, device_type
 
 
 def create_inventory(device_ip, device_type):
+    click.secho("Creating ansible inventory")
+    common_args = "deploy_sample_content=False do_image_preparation=True"
     if device_type == NEO_TYPE:
-        inventory_str = "%s\n" % (device_ip,)
+        inventory_str = "%s %s\n" % (device_ip, common_args)
     elif device_type == RPI_TYPE:
         inventory_str = "%s fsdfsdfd\n" % (device_ip,)
     else:
@@ -154,44 +140,97 @@ def create_inventory(device_ip, device_type):
     return inventory_name
 
 
-def run_ansible(inventory, tag):
-    print("Run: ansible-playbook -u root -i %s site.yml "
-          "-e connectbox_version=%s "
-          "-e deploy_sample_content=False "
-          "-e do_image_preparation=True " %
-          (inventory, tag)
-         )
+def run_ansible(inventory, tag, repo_location):
+    click.secho("Running ansible")
+    subprocess.run(
+        ["ansible-playbook",
+         "-u",
+         "root",
+         "-i",
+         inventory,
+         "-e",
+         "connectbox_version=%s" % (tag,),
+         "site.yml"
+        ], cwd=os.path.join(repo_location, "ansible")
+    )
+    #print(proc.stdout)
 
 
 def create_img_from_sd(tag, device_type):
-    print("Attach SD card from device and confirm it appears as /dev/sdb "
-          "(check dmesg)")
-    img_name = "%s_%s.img" % (device_type.replace(" ", "-"), tag,)
-    print("sudo /vagrant/shrink-image.sh /dev/sdb ./%s" % (img_name,))
-    return img_name
+    click.secho("Attach SD card from device", bold=True)
+    sd_seen_in_dmesg = False
+    while not sd_seen_in_dmesg:
+        sd_seen_in_dmesg = click.confirm("Has SD appeared as /dev/sdb in dmesg?")
+    path_to_image = "/tmp/%s_%s.img" % (device_type.replace(" ", "-"), tag,)
+    subprocess.run(
+        ["sudo",
+         "/vagrant/shrink-image.sh",
+         "/dev/sdb",
+         path_to_image
+        ]
+    )
+    return path_to_image
 
 
-def compress_img(img_name):
-    print("7za a -t7z -m0=lzma -mx=9 -mfb=64 -md=32m -ms=on "
-          "/vagrant/%s.7z ./%s" % (img_name, img_name))
+def compress_img(path_to_image):
+    path_to_compressed_image = os.path.join(
+        "/vagrant",
+        "%s.7z" % (os.path.basename(path_to_image),)
+    )
+    subprocess.run(
+        ["7za",
+         "a",
+         "-t7z",
+         "-m=lzma",
+         "-mx=9",
+         "-mfb=64",
+         "-md=32m",
+         "-ms=on",
+         path_to_compressed_image,
+         path_to_image
+        ]
+    )
+    return path_to_compressed_image
 
 
 @click.command()
-@click.option("--github-token", prompt=True,
-              default=lambda: os.environ.get("CONNECTBOX_GITHUB_TOKEN", ""))
-def main(github_token):
+@click.option("--github-token",
+              prompt=True,
+              default=lambda: os.environ.get("CONNECTBOX_GITHUB_TOKEN", ""),
+              help="Github token with ConnectBox org write privs")
+@click.option("--tag",
+              prompt="Enter tag for this release",
+              default=lambda: datetime.utcnow().strftime("v%Y%m%d"),
+              help="Name of this release (also used as git tag)")
+@click.option("--use-existing-tag",
+              is_flag=True,
+              default=False,
+              help="Use an existing tag and do not tag the repos")
+def main(github_token, tag, use_existing_tag):
     connectbox_org = Github(github_token).get_organization("ConnectBox")
-    tag = generate_tag_string()
-    create_tags_in_repos(connectbox_org, CONNECTBOX_REPOS, tag)
-    create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
-    checkout_ansible_repo(tag)
-    # install packages (pip3 install -r requirements.txt)
+    if not use_existing_tag:
+        click.confirm("Proceed with new tag '%s'?" % (tag,), abort=True)
+        create_tags_in_repos(connectbox_org, CONNECTBOX_REPOS, tag)
+        create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
+    else:
+        click.confirm("Proceed with existing tag '%s'?" % (tag,), abort=True)
+    repo_location = checkout_ansible_repo(tag)
+    # install packages needed for connectbox build
+    subprocess.run(
+        ["pip3",
+         "install",
+         "-r",
+         os.path.join(repo_location, "requirements.txt")
+        ]
+    )
     device_ip, device_type = get_device_ip_and_type()
     inventory_name = create_inventory(device_ip, device_type)
-    run_ansible(inventory_name, tag)
+    run_ansible(inventory_name, tag, repo_location)
     img_name = create_img_from_sd(tag, device_type)
-    compress_img(img_name)
-    print("Now, update release notes, inserting changelog and base image name")
+    path_to_compressed_image = compress_img(img_name)
+    click.secho("Compressed image complete and located at: %s" %
+                (path_to_compressed_image,))
+    click.secho("Now, update release notes, inserting changelog and base image name")
 
 
 
