@@ -7,6 +7,8 @@ HOST=$1
 gsed -i '/^'$HOST'.*/d' ~/.ssh/known_hosts;
 gsed -i '/^'$(dig +short $HOST)'.*/d' ~/.ssh/known_hosts;
 
+sleep 1;
+
 # Forced password change
 # Do not create an additional user
 expect << EOF
@@ -24,6 +26,8 @@ send "\003\r"
 expect "closed."
 exit
 EOF
+
+sleep 1;
 
 # Allow passwordless access with current keys
 # add -i <private-key-name>    if you don't use ssh-agent
