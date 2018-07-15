@@ -1,9 +1,12 @@
+# Sets root account on a base armbian device with the password "connectbox"
+#  and copies public keys to the host to allow subsequent keyless logins
 if [ $# -ne 1 ]; then
    echo "Usage: $0 HOST";
    exit 1;
 fi
 HOST=$1
 
+# Remove hostname-centric and IP-centric entries from ssh's known hosts
 gsed -i '/^'$HOST'.*/d' ~/.ssh/known_hosts;
 gsed -i '/^'$(dig +short $HOST)'.*/d' ~/.ssh/known_hosts;
 
