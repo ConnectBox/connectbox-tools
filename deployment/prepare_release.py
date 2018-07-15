@@ -177,19 +177,18 @@ def compress_img(path_to_image):
         "/vagrant",
         "%s.7z" % (os.path.basename(path_to_image),)
     )
-    subprocess.run(
-        ["7za",
-         "a",
-         "-t7z",
-         "-m=lzma",
-         "-mx=9",
-         "-mfb=64",
-         "-md=32m",
-         "-ms=on",
-         path_to_compressed_image,
-         path_to_image
-        ]
-    )
+    cmd = ["7za",
+           "a",
+           "-t7z",
+           "-m0=lzma",
+           "-mx=9",
+           "-mfb=64",
+           "-md=32m",
+           "-ms=on",
+           path_to_compressed_image,
+           path_to_image
+          ]
+    subprocess.run(cmd)
     return path_to_compressed_image
 
 
@@ -231,7 +230,6 @@ def main(github_token, tag, use_existing_tag):
     click.secho("Compressed image complete and located at: %s" %
                 (path_to_compressed_image,))
     click.secho("Now, update release notes, inserting changelog and base image name")
-
 
 
 if __name__ == "__main__":
