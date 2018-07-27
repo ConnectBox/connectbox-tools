@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python2
 """
 Drive release process for connectbox images
 """
@@ -47,13 +47,14 @@ def create_tags_in_repos(connectbox_org, repos, tag):
                               )
 
 def create_github_release(gh_repo, tag):
-    gh_repo.create_git_release(
+    release = gh_repo.create_git_release(
         tag,
         tag,
         "Insert release notes here",
         draft=True,
         prerelease=True
     )
+    return release
 
 
 def checkout_ansible_repo(tag):
@@ -210,9 +211,11 @@ def main(github_token, tag, use_existing_tag):
     if not use_existing_tag:
         click.confirm("Proceed with new tag '%s'?" % (tag,), abort=True)
         create_tags_in_repos(connectbox_org, CONNECTBOX_REPOS, tag)
-        create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
+        gh_release = create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
     else:
         click.confirm("Proceed with existing tag '%s'?" % (tag,), abort=True)
+        gh_release = connectbox_org.get_repo(MAIN_REPO).get_release(tag)
+
     repo_location = checkout_ansible_repo(tag)
     # install packages needed for connectbox build
     subprocess.run(
@@ -229,6 +232,9 @@ def main(github_token, tag, use_existing_tag):
     path_to_compressed_image = compress_img(img_name)
     click.secho("Compressed image complete and located at: %s" %
                 (path_to_compressed_image,))
+    click.secho("Uploading to Github (may take ~1hr). Check progress in the "
+                "github release page itself")
+    gh_release.upload_asset(path_to_compressed_image)
     click.secho("Now, update release notes, inserting changelog and base image name")
 
 
