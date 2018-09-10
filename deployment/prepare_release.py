@@ -19,6 +19,7 @@ CONNECTBOX_REPOS = [
     "NEO_BatteryLevelShutdown",
     "connectbox-react-icon-client",
     "access-log-analyzer",
+    "simple-offline-captive-portal",
 ]
 # while testing
 #CONNECTBOX_REPOS = ["server-services"]
