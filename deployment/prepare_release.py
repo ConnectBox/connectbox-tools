@@ -60,12 +60,8 @@ def create_github_release(gh_repo, tag):
 
 def checkout_ansible_repo(tag):
     repo = "connectbox-pi"
-    if os.path.isdir(repo):
-        click.confirm("%s directory already exists. ok to delete?" % (repo,),
-                      abort=True)
-
-        click.echo("Deleting %s" % (repo,))
-        shutil.rmtree(repo)
+    click.secho("Deleting %s" % (repo,), fg="blue", bold=True)
+    shutil.rmtree(repo)
 
     repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
     subprocess.run(
