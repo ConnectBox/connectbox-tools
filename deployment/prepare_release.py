@@ -82,11 +82,13 @@ def device_type_from_model_str(model_str):
 def get_device_ip_and_type():
     device_addr = ""
     while not device_addr:
-        response = input("Enter IP address for build device: ")
+        text = click.style("Enter IP address for build device",
+                           fg="blue", bold=True)
+        response = click.prompt(text)
         try:
             device_addr = ipaddress.ip_address(response)
         except ValueError as val:
-            print(val.args[0])
+            click.secho(val.args[0], fg="blue", bold=True)
             device_addr = ""
 
     # We don't care about known hosts given we touch a new device each time
@@ -97,10 +99,9 @@ def get_device_ip_and_type():
     can_ssh_to_device = False
     device_type = UNKNOWN_TYPE
     while not can_ssh_to_device:
-        response = input(
-            "Ready to attempt passwordless ssh to %s. Enter to start: " %
-            (device_addr,)
-        )
+        click.secho("Ready to attempt passwordless ssh to %s" % (device_addr,),
+                    fg="blue", bold=True)
+        click.pause()
         try:
             # what about rpi?
             proc = subprocess.run([
@@ -115,7 +116,7 @@ def get_device_ip_and_type():
                 device_type_from_model_str(proc.stdout.decode("utf-8"))
             can_ssh_to_device = True
         except subprocess.CalledProcessError as cpe:
-            print(cpe.args)
+            click.secho(cpe.args, fg="blue", bold=True)
 
     click.secho("Deploying to %s (type: %s)" %
                 (device_addr.exploded, device_type), bold=True)
@@ -220,13 +221,19 @@ def compress_img(path_to_image):
 def main(github_token, tag, use_existing_tag):
     connectbox_org = Github(github_token).get_organization("ConnectBox")
     if not use_existing_tag:
-        click.confirm("Proceed with new tag '%s'?" % (tag,), abort=True)
+        text = click.style("Proceed with new tag '%s'?" % (tag,),
+                           fg="blue", bold=True)
+        click.confirm(text, abort=True)
         create_tags_in_repos(connectbox_org, CONNECTBOX_REPOS, tag)
         gh_release = create_github_release(connectbox_org.get_repo(MAIN_REPO), tag)
     else:
-        click.confirm("Proceed with existing tag '%s'?" % (tag,), abort=True)
+        text = click.style("Proceed with existing tag '%s'?" % (tag,),
+                           fg="blue", bold=True)
+        click.confirm(text, abort=True)
         gh_release = connectbox_org.get_repo(MAIN_REPO).get_release(tag)
 
+    # do things early that prompt
+    device_ip, device_type = get_device_ip_and_type()
     repo_location = checkout_ansible_repo(tag)
     # install packages needed for connectbox build
     subprocess.run(
@@ -236,17 +243,17 @@ def main(github_token, tag, use_existing_tag):
          os.path.join(repo_location, "requirements.txt")
         ]
     )
-    device_ip, device_type = get_device_ip_and_type()
     inventory_name = create_inventory(device_ip, device_type)
     run_ansible(inventory_name, tag, repo_location)
     img_name = create_img_from_sd(tag, device_type)
     path_to_compressed_image = compress_img(img_name)
     click.secho("Compressed image complete and located at: %s" %
-                (path_to_compressed_image,))
+                (path_to_compressed_image,), fg="blue", bold=True)
     click.secho("Uploading to Github (may take ~1hr). Check progress in the "
-                "github release page itself")
+                "github release page itself", fg="blue", bold=True)
     gh_release.upload_asset(path_to_compressed_image)
-    click.secho("Now, update release notes, inserting changelog and base image name")
+    click.secho("Now, update release notes, inserting changelog and base "
+                "image name", fg="blue", bold=True)
 
 
 if __name__ == "__main__":
