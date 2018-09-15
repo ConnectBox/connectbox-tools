@@ -153,12 +153,26 @@ def run_ansible(inventory, tag, repo_location):
 
 
 def create_img_from_sd(tag, device_type):
+    with open("/proc/partitions") as proc_partitions:
+        partitions_before = proc_partitions.read()
+
     click.secho("Attach SD card from device", fg="blue", bold=True)
     # look for sdb1$ in the last line of /proc/partitions
     # perhaps prompt?
     sd_seen_in_dmesg = False
     while not sd_seen_in_dmesg:
         sd_seen_in_dmesg = click.confirm("Has SD appeared as /dev/sdb in dmesg?")
+
+    with open("/proc/partitions") as proc_partitions:
+        partitions_after = proc_partitions.read()
+
+    print("/dev/sdb1 in partitions_before? %s", ("/dev/sdb1" in
+                                                 partitions_before))
+    print("/dev/sdb1 in partitions_after? %s", ("/dev/sdb1" in
+                                                partitions_after))
+    print("before: %s", (partitions_before,))
+    print("after: %s", (partitions_after,))
+    click.pause()
     path_to_image = "/tmp/%s_%s.img" % (device_type.replace(" ", "-"), tag,)
     subprocess.run(
         ["sudo",
