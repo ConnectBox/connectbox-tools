@@ -168,10 +168,8 @@ def create_img_from_sd(tag, device_type):
     with open("/proc/partitions") as proc_partitions:
         partitions_after = proc_partitions.read()
 
-    print("/dev/sdb1 in partitions_before? %s", ("/dev/sdb1" in
-                                                 partitions_before))
-    print("/dev/sdb1 in partitions_after? %s", ("/dev/sdb1" in
-                                                partitions_after))
+    print("sdb1 in partitions_before? %s" % ("sdb1" in partitions_before,))
+    print("sdb1 in partitions_after? %s" % ("sdb1" in partitions_after,))
     print("before: %s", (partitions_before,))
     print("after: %s", (partitions_after,))
     click.pause()
