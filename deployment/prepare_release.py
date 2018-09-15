@@ -231,7 +231,12 @@ def main(github_token, tag, use_existing_tag):
         text = click.style("Proceed with existing tag '%s'?" % (tag,),
                            fg="blue", bold=True)
         click.confirm(text, abort=True)
-        gh_release = connectbox_org.get_repo(MAIN_REPO).get_release(tag)
+        # connectbox_org.get_repo(MAIN_REPO).get_release(tag) doesn't find
+        #  draft releases, but all releases does, so let's use that
+        gh_release = [
+            r for r in connectbox_org.get_repo(MAIN_REPO).get_releases()
+            if r.title == tag
+        ][0]
 
     # do things early that prompt
     device_ip, device_type = get_device_ip_and_type()
