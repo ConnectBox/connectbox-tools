@@ -218,6 +218,8 @@ def compress_img(path_to_image):
               default=False,
               help="Use an existing tag and do not tag the repos")
 def main(github_token, tag, use_existing_tag):
+    # do things early that prompt
+    device_ip, device_type = get_device_ip_and_type()
     connectbox_org = Github(github_token).get_organization("ConnectBox")
     if not use_existing_tag:
         text = click.style("Proceed with new tag '%s'?" % (tag,),
@@ -236,8 +238,6 @@ def main(github_token, tag, use_existing_tag):
             if r.title == tag
         ][0]
 
-    # do things early that prompt
-    device_ip, device_type = get_device_ip_and_type()
     repo_location = checkout_ansible_repo(tag)
     # install packages needed for connectbox build
     subprocess.run(
