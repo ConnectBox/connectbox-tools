@@ -104,7 +104,6 @@ def get_device_ip_and_type():
                     fg="blue", bold=True)
         click.pause()
         try:
-            # what about rpi?
             proc = subprocess.run([
                 "ssh",
                 "-oStrictHostKeyChecking=no",
@@ -124,17 +123,11 @@ def get_device_ip_and_type():
     return device_addr.exploded, device_type
 
 
-def create_inventory(device_ip, device_type):
+def create_inventory(device_ip):
     click.secho("Creating ansible inventory", fg="blue", bold=True)
-    common_args = "deploy_sample_content=False do_image_preparation=True"
-    if device_type == NEO_TYPE:
-        inventory_str = "%s ansible_user=root %s\n" % (device_ip, common_args)
-    elif device_type == RPI_TYPE:
-        inventory_str = "%s ansible_user=pi %s\n" % (device_ip, common_args)
-    else:
-        assert "got here with DEVICE_TYPE=%s" % (device_type,)
-        inventory_str = ""
-
+    inventory_str = \
+        "%s deploy_sample_content=False do_image_preparation=True\n" % \
+        (device_ip,)
     inventory_fd, inventory_name = tempfile.mkstemp()
     os.pwrite(inventory_fd, inventory_str.encode("utf-8"), 0)
     os.close(inventory_fd)
@@ -143,10 +136,14 @@ def create_inventory(device_ip, device_type):
 
 def run_ansible(inventory, tag, repo_location):
     click.secho("Running ansible", fg="blue", bold=True)
+    # release builds always run with the root account, even on raspbian.
+    # the ansible_user here overrides the group_vars/raspbian variables
     subprocess.run(
         ["ansible-playbook",
          "-i",
          inventory,
+         "-e",
+         "ansible_user=root",
          "-e",
          "connectbox_version=%s" % (tag,),
          "site.yml"
@@ -247,7 +244,7 @@ def main(github_token, tag, use_existing_tag):
          os.path.join(repo_location, "requirements.txt")
         ]
     )
-    inventory_name = create_inventory(device_ip, device_type)
+    inventory_name = create_inventory(device_ip)
     run_ansible(inventory_name, tag, repo_location)
     img_name = create_img_from_sd(tag, device_type)
     path_to_compressed_image = compress_img(img_name)

@@ -1,5 +1,6 @@
-# Sets root account on a base armbian device with the password "connectbox"
+# Sets root account on a base raspbian-lite device with the password "connectbox"
 #  and copies public keys to the host to allow subsequent keyless logins
+# Also disables pi account
 if [ $# -ne 1 ]; then
    echo "Usage: $0 HOST";
    exit 1;
@@ -17,21 +18,24 @@ fi
 
 sleep 1;
 
-# Forced password change
-# Do not create an additional user
+# Enable root logins
+# Set root password
 expect << EOF
-spawn ssh -t -l root -o "StrictHostKeyChecking=accept-new" $HOST
+spawn ssh -t -l pi -o "StrictHostKeyChecking=accept-new" $HOST
 expect "password: "
-send "1234\r"
-expect "(current) UNIX password: "
-send "1234\r"
-expect "Enter new UNIX password: " 
+send "raspberry\r"
+expect "pi@rpi3:~ $ "
+send "sudo sed -i 's/^#PermitRootLogin.*/PermitRootLogin=yes/' /etc/ssh/sshd_config\r"
+expect "pi@rpi3:~ $ "
+send "sudo systemctl restart ssh\r"
+expect "pi@rpi3:~ $ "
+send "sudo passwd\r"
+expect "Enter new UNIX password: "
 send "connectbox\r"
 expect "Retype new UNIX password: "
 send "connectbox\r"
-expect "Please provide a username (eg. your forename): "
-send "\003\r"
-expect "closed."
+expect "pi@rpi3:~ $ "
+send "exit\r"
 exit
 EOF
 
@@ -48,6 +52,9 @@ expect "were added."
 sleep 2
 exit
 EOF
+
+echo "locking the pi account"
+ssh root@$HOST "usermod --lock pi"
 
 # Test
 echo "Testing access..."
