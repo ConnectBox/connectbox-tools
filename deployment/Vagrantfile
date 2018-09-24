@@ -3,7 +3,6 @@
 
 $script = <<SCRIPT
 apt-get update
-apt-get install -y p7zip-full
 apt-get install -y python3-venv
 apt-get install -y python3-pip
 pip3 install -r /vagrant/requirements.txt

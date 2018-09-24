@@ -182,23 +182,16 @@ def create_img_from_sd(tag, device_type):
 
 
 def compress_img(path_to_image):
-    path_to_compressed_image = os.path.join(
-        "/vagrant",
-        "%s.7z" % (os.path.basename(path_to_image),)
-    )
-    cmd = ["7za",
-           "a",
-           "-t7z",
-           "-m0=lzma",
-           "-mx=9",
-           "-mfb=64",
-           "-md=32m",
-           "-ms=on",
-           path_to_compressed_image,
+    cmd = ["xz",
+           "--threads=0",
+           "--extreme",
            path_to_image
           ]
     subprocess.run(cmd)
-    return path_to_compressed_image
+    return os.path.join(
+        "/vagrant",
+        "%s.xz" % (os.path.basename(path_to_image),)
+    )
 
 
 @click.command()
