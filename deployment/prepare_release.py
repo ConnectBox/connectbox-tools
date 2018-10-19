@@ -188,10 +188,11 @@ def compress_img(path_to_image):
            path_to_image
           ]
     subprocess.run(cmd)
-    return os.path.join(
+    path_to_compressed_image = os.path.join(
         "/vagrant",
         "%s.xz" % (os.path.basename(path_to_image),)
     )
+    return shutil.move(path_to_image, path_to_compressed_image)
 
 
 @click.command()
