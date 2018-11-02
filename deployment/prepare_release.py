@@ -182,7 +182,8 @@ def create_img_from_sd(tag, device_type):
 
 
 def compress_img(path_to_image):
-    cmd = ["xz",
+    cmd = ["sudo",
+           "xz",
            "--threads=0",
            "--extreme",
            path_to_image
