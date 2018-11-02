@@ -60,9 +60,11 @@ def create_github_release(gh_repo, tag):
 
 def checkout_ansible_repo(tag):
     repo = "connectbox-pi"
-    click.secho("Deleting previous %s build directory" % (repo,),
+    click.secho("Deleting any previous %s build directory" % (repo,),
                 fg="blue", bold=True)
-    shutil.rmtree(repo)
+
+    if os.path.exists(repo):
+        shutil.rmtree(repo)
 
     repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
     subprocess.run(
