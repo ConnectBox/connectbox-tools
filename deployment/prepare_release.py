@@ -10,6 +10,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import time
 import click
 from github import Github
 
@@ -158,20 +159,20 @@ def create_img_from_sd(tag, device_type):
         partitions_before = proc_partitions.read()
 
     click.secho("Attach SD card from device", fg="blue", bold=True)
-    # look for sdb1$ in the last line of /proc/partitions
-    # perhaps prompt?
-    sd_seen_in_dmesg = False
-    while not sd_seen_in_dmesg:
-        sd_seen_in_dmesg = click.confirm("Has SD appeared as /dev/sdb in dmesg?")
+    partitions_after = partitions_before
+    while partitions_after == partitions_before:
+        time.sleep(1)
+        # Check to see if the SD card has appeared in /proc/partitions
+        with open("/proc/partitions") as proc_partitions:
+            partitions_after = proc_partitions.read()
 
-    with open("/proc/partitions") as proc_partitions:
-        partitions_after = proc_partitions.read()
-
-    print("sdb1 in partitions_before? %s" % ("sdb1" in partitions_before,))
-    print("sdb1 in partitions_after? %s" % ("sdb1" in partitions_after,))
     print("before: %s", (partitions_before,))
     print("after: %s", (partitions_after,))
-    click.pause()
+    print("sdb1 in partitions_before? %s" % ("sdb1" in partitions_before,))
+    print("sdb1 in partitions_after? %s" % ("sdb1" in partitions_after,))
+
+    click.pause("Looks like the SD card has been inserted. "
+                "Press any key to continue...")
     path_to_image = "/tmp/%s_%s.img" % (device_type.replace(" ", "-"), tag,)
     subprocess.run(
         ["sudo",
