@@ -158,7 +158,8 @@ def create_img_from_sd(tag, device_type):
     with open("/proc/partitions") as proc_partitions:
         partitions_before = proc_partitions.read()
 
-    click.secho("Attach SD card from device", fg="blue", bold=True)
+    click.secho("Insert SD card from device (you may need to attach it to "
+                "this VM)", fg="blue", bold=True)
     partitions_after = partitions_before
     while partitions_after == partitions_before:
         time.sleep(1)
@@ -185,6 +186,8 @@ def create_img_from_sd(tag, device_type):
 
 
 def compress_img(path_to_image):
+    # xz in 16.04 doesn't support --threads, but happily ignores it.
+    # When we upgrade to something that does, it'll start working
     cmd = ["sudo",
            "xz",
            "--threads=0",
@@ -197,7 +200,13 @@ def compress_img(path_to_image):
         "/vagrant",
         "%s.xz" % (os.path.basename(path_to_image),)
     )
-    return shutil.move(path_to_image + ".xz", path_to_compressed_image)
+    cmd = ["sudo",
+           "mv",
+           path_to_image + ".xz",
+           path_to_compressed_image
+          ]
+    subprocess.run(cmd)
+    return path_to_compressed_image
 
 
 @click.command()
