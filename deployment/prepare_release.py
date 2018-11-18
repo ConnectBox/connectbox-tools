@@ -17,7 +17,7 @@ from github import Github
 
 CONNECTBOX_REPOS = [
     "connectbox-pi",
-    "NEO_BatteryLevelShutdown",
+    "connectbox-hat-service",
     "connectbox-react-icon-client",
     "access-log-analyzer",
     "simple-offline-captive-portal",
