@@ -154,24 +154,28 @@ def run_ansible(inventory, tag, repo_location):
     )
 
 
-def create_img_from_sd(tag, device_type):
+def partition_list():
     with open("/proc/partitions") as proc_partitions:
-        partitions_before = proc_partitions.read()
+        lines = proc_partitions.readlines()
 
+    # Return the last space-separated field in each line of /proc/partitions
+    #  discarding the header row, and the empty line that follows it
+    return set([line.strip().split(" ")[-1]
+               for line in lines[2:]])
+
+
+def create_img_from_sd(tag, device_type):
+    partitions_before = partition_list()
     click.secho("Insert SD card from device (you may need to attach it to "
                 "this VM)", fg="blue", bold=True)
     partitions_after = partitions_before
     while partitions_after == partitions_before:
         time.sleep(1)
         # Check to see if the SD card has appeared in /proc/partitions
-        with open("/proc/partitions") as proc_partitions:
-            partitions_after = proc_partitions.read()
+        partitions_before = partition_list()
 
-    print("before: %s", (partitions_before,))
-    print("after: %s", (partitions_after,))
-    print("sdb1 in partitions_before? %s" % ("sdb1" in partitions_before,))
-    print("sdb1 in partitions_after? %s" % ("sdb1" in partitions_after,))
-
+    print("Additional partition(s) detected: %s." %
+         (", ".join(partitions_after.difference(partitions_before)),))
     click.pause("Looks like the SD card has been inserted. "
                 "Press any key to continue...")
     path_to_image = "/tmp/%s_%s.img" % (device_type.replace(" ", "-"), tag,)
