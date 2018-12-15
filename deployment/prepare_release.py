@@ -172,7 +172,7 @@ def create_img_from_sd(tag, device_type):
     while partitions_after == partitions_before:
         time.sleep(1)
         # Check to see if the SD card has appeared in /proc/partitions
-        partitions_before = partition_list()
+        partitions_after = partition_list()
 
     print("Additional partition(s) detected: %s." %
          (", ".join(partitions_after.difference(partitions_before)),))
