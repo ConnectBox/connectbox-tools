@@ -21,6 +21,7 @@ CONNECTBOX_REPOS = [
     "connectbox-react-icon-client",
     "access-log-analyzer",
     "simple-offline-captive-portal",
+    "wifi-configurator",
 ]
 # while testing
 #CONNECTBOX_REPOS = ["server-services"]
@@ -74,10 +75,12 @@ def checkout_ansible_repo(tag):
     )
     return repo
 
+
 def device_type_from_model_str(model_str):
     if NEO_TYPE in model_str:
         return NEO_TYPE
-    elif RPI_TYPE in model_str:
+
+    if RPI_TYPE in model_str:
         return RPI_TYPE
 
     return UNKNOWN_TYPE
