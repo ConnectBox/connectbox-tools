@@ -163,8 +163,8 @@ def partition_list():
 
     # Return the last space-separated field in each line of /proc/partitions
     #  discarding the header row, and the empty line that follows it
-    return set([line.strip().split(" ")[-1]
-               for line in lines[2:]])
+    return {line.strip().split(" ")[-1]
+            for line in lines[2:]}
 
 
 def create_img_from_sd(tag, device_type):
@@ -178,7 +178,7 @@ def create_img_from_sd(tag, device_type):
         partitions_after = partition_list()
 
     print("Additional partition(s) detected: %s." %
-         (", ".join(partitions_after.difference(partitions_before)),))
+          (", ".join(partitions_after.difference(partitions_before)),))
     click.pause("Looks like the SD card has been inserted. "
                 "Press any key to continue...")
     path_to_image = "/tmp/%s_%s.img" % (device_type.replace(" ", "-"), tag,)
@@ -229,9 +229,17 @@ def compress_img(path_to_image):
               is_flag=True,
               default=False,
               help="Use an existing tag and do not tag the repos")
-def main(github_token, tag, use_existing_tag):
+@click.option("--create-image/--no-create-image",
+              default=True,
+              help="Create image by running ansible playbook against a device")
+def main(github_token, tag, use_existing_tag, create_image):
     # do things early that prompt
-    device_ip, device_type = get_device_ip_and_type()
+    if create_image:
+        device_ip, device_type = get_device_ip_and_type()
+    else:
+        device_type = click.prompt("Enter device type:",
+                                   type=click.Choice([NEO_TYPE, RPI_TYPE]))
+
     connectbox_org = Github(github_token).get_organization("ConnectBox")
     if not use_existing_tag:
         text = click.style("Proceed with new tag '%s'?" % (tag,),
@@ -250,17 +258,19 @@ def main(github_token, tag, use_existing_tag):
             if r.title == tag
         ][0]
 
-    repo_location = checkout_ansible_repo(tag)
-    # install packages needed for connectbox build
-    subprocess.run(
-        ["pip3",
-         "install",
-         "-r",
-         os.path.join(repo_location, "requirements.txt")
-        ]
-    )
-    inventory_name = create_inventory(device_ip)
-    run_ansible(inventory_name, tag, repo_location)
+    if create_image:
+        repo_location = checkout_ansible_repo(tag)
+        # install packages needed for connectbox build
+        subprocess.run(
+            ["pip3",
+             "install",
+             "-r",
+             os.path.join(repo_location, "requirements.txt")
+            ]
+        )
+        inventory_name = create_inventory(device_ip)
+        run_ansible(inventory_name, tag, repo_location)
+
     img_name = create_img_from_sd(tag, device_type)
     path_to_compressed_image = compress_img(img_name)
     click.secho("Compressed image complete and located at: %s" %
