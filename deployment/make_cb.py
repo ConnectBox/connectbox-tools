@@ -172,4 +172,8 @@ def main(tag, update_ansible):
 
 if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter
+<<<<<<< HEAD
     main()
+=======
+    main()
+>>>>>>> aa300d74ee9fd168e6b514ff555347c6723138c1
