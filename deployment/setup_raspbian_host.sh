@@ -1,4 +1,4 @@
-# Sets root account on a base raspbian-lite device with the password "connectbox"
+# Sets root account on a base raspbian-lite device with the password "waypoint"
 #  and copies public keys to the host to allow subsequent keyless logins
 # Also disables pi account
 if [ $# -ne 1 ]; then
@@ -8,12 +8,12 @@ fi
 HOST=$1
 
 # Remove hostname-centric and IP-centric entries from ssh's known hosts
-gsed -i '/^'$HOST'.*/d' ~/.ssh/known_hosts;
+sed -i '/^'$HOST'.*/d' ~/.ssh/known_hosts;
 # Only try to remove IP address if it exists, lest we delete everything from
 #  .ssh/known_hosts :-\
 host_ip=$(dig +short $HOST)
 if [ -n "$host_ip" ]; then
-  gsed -i '/^'$host_ip'.*/d' ~/.ssh/known_hosts;
+  sed -i '/^'$host_ip'.*/d' ~/.ssh/known_hosts;
 fi
 
 sleep 1;
@@ -31,9 +31,9 @@ send "sudo systemctl restart ssh\r"
 expect "pi@rpi3:~ $ "
 send "sudo passwd\r"
 expect "Enter new UNIX password: "
-send "connectbox\r"
+send "waypoint\r"
 expect "Retype new UNIX password: "
-send "connectbox\r"
+send "waypoint\r"
 expect "pi@rpi3:~ $ "
 send "exit\r"
 exit
@@ -47,7 +47,7 @@ sleep 1;
 expect << EOF
 spawn ssh-copy-id root@$HOST
 expect "password: "
-send "connectbox\r"
+send "waypoint\r"
 expect "were added."
 sleep 2
 exit

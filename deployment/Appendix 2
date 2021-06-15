@@ -1,0 +1,65 @@
+Appendix 2:
+this appendix created by Kirk Wilson (kirk.wilson@globalsystems.design) and the previous documents are designed to help you 
+create and install images for the waypoint on Windows machines.
+
+Action 1:  Setup Virtualbox on your computer & install the VM VirtualBox Extension Pack for your version of Virtualbox
+
+
+
+Action 2:	Install a virtual Ubuntu 19.10Eaon in your virtual box from osboxes.org
+
+Action 3: 	You now have Ubuntu installed, go to the start menu and open the Ubuntu item.  It may take a while to start the
+first time but subsequent times will be easy.  You will be asked for your password wich will be osboxes.org.  remember this.
+You will use it later in the process
+
+Action 4:	After Ubuntu starts, Open a window, you will have a black window with a linux prompt inside it.  This is the Ubuntu window.
+we must now update and prepare Linux.
+Step A:	sudo apt update
+Step B: sudo apt upgrade
+Step C: sudo apt install expect
+Step D: download the latest version of Vagrant from https://www.vagrantup.com/downloads.html.  install vagrant with:
+        sudo apt install ./vagrant_x.x.x_x86_64.deb    where x.x.x is the revision number of your vagrant version.
+Step E: sudo apt install linux-generic
+Step F: sudo apt install linux-headers-$(uname -r)
+Step G: change directories to /etc/apt direcory by using the command: cd /etc/apt
+Step H: edit the file sources.list by typeing: nano sources.list
+Step I: go to the bottom of the file and add the line: deb [arch=amd64] https://download.virtualbox.org/virtualbox/debian bionic contrib
+Step J: save the changed file using the control key type O (letter not number): ctrl-O   
+Step K: sudo install VirtualBox using: apt install virtualbox
+Step L: sudo reinstall virtualbox-dkms
+
+
+Action 5:Change to your home directory using: cd/home/osboxes
+
+Action 6: sudo apt install git
+
+Action 7: sudo apt install python3-pip
+
+Action 8: sudo git clone https://github.com/kirkdwilson/WayPoint/connectbox-tools
+
+Action 9: sudo ln /usr/biin/sed /usr/bin/gsed
+
+Action 10: cd connectbox-tools/deployment
+
+Action 10b: pip3 install -r requirements.txt
+
+Action 10c: sudo apt install expect
+
+Action 11: Setup Vagrant to run in your directory by typing:
+			sudo rm Vagrant
+			vagrant init bento/ubuntu-16.04
+
+Action 12: Start Vagrant by typing: vagrant up
+
+Action 13: Path = $Path + ":/home/osboxes/.local/bin"
+
+Action 14: sudo ln -s /home/osboxes/waypoint-tools/deployment /vagrant
+
+Action 15: ./setup_armbian_host.sh (or ./setup_raspbian_host.sh)
+
+Action 16: ssh root@xxx.xxx.xxx (for the host to verify login without password)
+			once your in and confirmed type:  exit
+
+Action 17: python3 prepare_release.python3
+
+

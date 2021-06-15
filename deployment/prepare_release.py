@@ -1,6 +1,6 @@
 #!/usr/bin/env python2
 """
-Drive release process for connectbox images
+Drive release process for waypoint images
 """
 
 from datetime import datetime
@@ -25,7 +25,7 @@ CONNECTBOX_REPOS = [
 ]
 # while testing
 #CONNECTBOX_REPOS = ["server-services"]
-GITHUB_OWNER = "ConnectBox"
+GITHUB_OWNER = "kirkdwilson/WayPoint"
 #MAIN_REPO = "server-services"
 MAIN_REPO = "connectbox-pi"
 
@@ -40,7 +40,7 @@ def create_tags_in_repos(connectbox_org, repos, tag):
         most_recent_commit = gh_repo.get_commits()[0]
         gh_repo.create_git_tag(
             tag,
-            "Automated git tag during connectbox release",
+            "Automated git tag during waypoint release",
             most_recent_commit.sha,
             "commit"
         )
@@ -68,7 +68,7 @@ def checkout_ansible_repo(tag):
     if os.path.exists(repo):
         shutil.rmtree(repo)
 
-    repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
+    repo_addr = "https://github.com/kirkdwilson/WayPoint/connectbox-pi.git"
     subprocess.run(
         ["git", "clone", "-b", tag, "--depth=1", repo_addr],
         check=True
@@ -220,7 +220,7 @@ def compress_img(path_to_image):
 @click.option("--github-token",
               prompt=True,
               default=lambda: os.environ.get("CONNECTBOX_GITHUB_TOKEN", ""),
-              help="Github token with ConnectBox org write privs")
+              help="Github token with waypoint org write privs")
 @click.option("--tag",
               prompt="Enter tag for this release",
               default=lambda: datetime.utcnow().strftime("v%Y%m%d"),
@@ -240,7 +240,7 @@ def main(github_token, tag, use_existing_tag, create_image):
         device_type = click.prompt("Enter device type:",
                                    type=click.Choice([NEO_TYPE, RPI_TYPE]))
 
-    connectbox_org = Github(github_token).get_organization("ConnectBox")
+    connectbox_org = Github(github_token).get_organization("kirkdwilson/WayPoint")
     if not use_existing_tag:
         text = click.style("Proceed with new tag '%s'?" % (tag,),
                            fg="blue", bold=True)
@@ -260,7 +260,7 @@ def main(github_token, tag, use_existing_tag, create_image):
 
     if create_image:
         repo_location = checkout_ansible_repo(tag)
-        # install packages needed for connectbox build
+        # install packages needed for WayPoint build
         subprocess.run(
             ["pip3",
              "install",

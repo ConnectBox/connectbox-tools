@@ -1,4 +1,4 @@
-# Sets root account on a base armbian device with the password "connectbox"
+# Sets root account on a base armbian device with the password "waypoint"
 #  and copies public keys to the host to allow subsequent keyless logins
 if [ $# -ne 1 ]; then
    echo "Usage: $0 HOST";
@@ -26,9 +26,9 @@ send "1234\r"
 expect "(current) UNIX password: "
 send "1234\r"
 expect "Enter new UNIX password: " 
-send "connectbox\r"
+send "waypoint\r"
 expect "Retype new UNIX password: "
-send "connectbox\r"
+send "waypoint\r"
 expect "Please provide a username (eg. your forename): "
 send "\003\r"
 expect "closed."
@@ -43,7 +43,7 @@ sleep 1;
 expect << EOF
 spawn ssh-copy-id root@$HOST
 expect "password: "
-send "connectbox\r"
+send "waypoint\r"
 expect "were added."
 sleep 2
 exit
