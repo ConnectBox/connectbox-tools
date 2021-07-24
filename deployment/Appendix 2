@@ -1,6 +1,6 @@
 Appendix 2:
 this appendix created by Kirk Wilson (kirk.wilson@globalsystems.design) and the previous documents are designed to help you 
-create and install images for the waypoint on Windows machines.
+create and install images for the connectbox on Windows machines.
 
 Action 1:  Setup Virtualbox on your computer & install the VM VirtualBox Extension Pack for your version of Virtualbox
 
@@ -35,7 +35,7 @@ Action 6: sudo apt install git
 
 Action 7: sudo apt install python3-pip
 
-Action 8: sudo git clone https://github.com/kirkdwilson/WayPoint/connectbox-tools
+Action 8: sudo git clone https://github.com/kirkdwilson/connectbox/connectbox-tools
 
 Action 9: sudo ln /usr/biin/sed /usr/bin/gsed
 
@@ -53,7 +53,7 @@ Action 12: Start Vagrant by typing: vagrant up
 
 Action 13: Path = $Path + ":/home/osboxes/.local/bin"
 
-Action 14: sudo ln -s /home/osboxes/waypoint-tools/deployment /vagrant
+Action 14: sudo ln -s /home/osboxes/connectbox-tools/deployment /vagrant
 
 Action 15: ./setup_armbian_host.sh (or ./setup_raspbian_host.sh)
 

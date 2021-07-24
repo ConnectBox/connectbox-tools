@@ -1,4 +1,4 @@
-# Sets root account on a base raspbian-lite device with the password "waypoint"
+# Sets root account on a base raspbian-lite device with the password "connectbox"
 #  and copies public keys to the host to allow subsequent keyless logins
 # Also disables pi account
 if [ $# -ne 1 ]; then
@@ -31,9 +31,9 @@ send "sudo systemctl restart ssh\r"
 expect "pi@rpi3:~ $ "
 send "sudo passwd\r"
 expect "Enter new UNIX password: "
-send "waypoint\r"
+send "connectbox\r"
 expect "Retype new UNIX password: "
-send "waypoint\r"
+send "connectbox\r"
 expect "pi@rpi3:~ $ "
 send "exit\r"
 exit
@@ -47,7 +47,7 @@ sleep 1;
 expect << EOF
 spawn ssh-copy-id root@$HOST
 expect "password: "
-send "waypoint\r"
+send "connectbox\r"
 expect "were added."
 sleep 2
 exit

@@ -14,9 +14,9 @@ Vagrant.configure(2) do |config|
   # Not using ubuntu/xenial64 because of
   #  https://bugs.launchpad.net/cloud-images/+bug/1569237
   config.vm.box = "bento/ubuntu-16.04"
-  config.vm.hostname = "waypoint-deployment-tools"
+  config.vm.hostname = "connectbox-deployment-tools"
   config.ssh.forward_agent = true
-  config.vm.post_up_message = "Run 'WAYPOINT_GITHUB_TOKEN=<whatever-it-is> python3 /vagrant/prepare_release.py' to start the release process"
+  config.vm.post_up_message = "Run 'CONNETBOX_GITHUB_TOKEN=<whatever-it-is> python3 /vagrant/prepare_release.py' to start the release process"
 
   config.vm.provider "vmware_fusion" do |vmw|
     vmw.vmx["memsize"] = 512

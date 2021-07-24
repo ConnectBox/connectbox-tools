@@ -1,15 +1,15 @@
 #!/bin/bash
 #
-#  waypoint image shrinker
+#  connectbox image shrinker
 #
 #  This program will shrink an sd card filesystem
 #  to the minimum size, prep it for deployment, and
 #  make an image that can be copied to new devices.
 #
-#  Usage: shrink-image.sh /dev/sdb waypoint.img
+#  Usage: shrink-image.sh /dev/sdb connectbox.img
 #  
 #  /dev/sdb is the sd card block device
-#  waypoint.img will be the resulting image
+#  connectbox.img will be the resulting image
 #
 #  Use with care! Although it makes some effort
 #  to ensure you select the correct device, it
@@ -24,7 +24,7 @@ output_img=$2
 
 # check for empty inputs
 if [ "x$sd_devpath" == "x" ] || [ "x$output_img" == "x" ]; then
-  echo "Usage: $0 /dev/sdb waypoint.img"
+  echo "Usage: $0 /dev/sdb connectbox.img"
   exit 1
 fi
 
@@ -102,7 +102,7 @@ fi
 # make a random temporary path to work in
 tmp_path=""
 while [ "x$tmp_path" == "x" ]; do
-  tmp_path=/tmp/waypoint.$RANDOM
+  tmp_path=/tmp/connectbox.$RANDOM
   if [ -d $tmp_path ]; then
     tmp_path=""
   fi
