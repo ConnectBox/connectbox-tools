@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Drive release process for connectbox images
+Create local connectbox image
+       
 """
 
 from datetime import datetime
@@ -101,7 +102,7 @@ def get_device_ip_and_type():
 def create_inventory(device_ip):
     click.secho("Creating ansible inventory", fg="blue", bold=True)
     inventory_str = \
-        "%s deploy_sample_content=False do_image_preparation=True\n" % \
+        "%s deploy_sample_content=False do_image_preparation=False\n" % \
         (device_ip,)
     inventory_fd, inventory_name = tempfile.mkstemp()
     os.pwrite(inventory_fd, inventory_str.encode("utf-8"), 0)
@@ -131,32 +132,44 @@ def run_ansible(inventory, tag, repo_location):
 # The following is required to enable the @click commands to run at beginning
 #  (before main)
 @click.command()
+@click.option("--update_ansible",
+              prompt="Update ansible scripts and code modules (y/N)",
+              default="N",
+              help="Update ansible flag")
+
 @click.option("--tag",
               prompt="Enter tag for this release",
               default=lambda: datetime.utcnow().strftime("v%Y%m%d"),
-              help="Name of this release (also used as git tag)")
+              help="Name of this release")
 
-def main(tag):
-    device_ip, device_type = get_device_ip_and_type()        
+def main(tag, update_ansible):
+    device_ip, device_type = get_device_ip_and_type()
+    #set default repo_location
+    repo_location = "connectbox-pi"
 
-    repo_location = checkout_ansible_repo()
+
+
+    # If the ansible path doesn't exist, then update_ansible 
+    ansible_path = Path(os.getcwd() + "/connectbox-pi/ansible").expanduser()
+    if not ansible_path.exists():
+        update_ansible = "Y"
+
+
+    if update_ansible == "Y" or update_ansible == "y":
+        repo_location = checkout_ansible_repo()
     
     # install packages needed for connectbox build
-    subprocess.run(
-        ["pip3",
-         "install",
-         "-r",
-            os.path.join(repo_location, "requirements.txt")
-         ]
-    )
+        subprocess.run(
+            ["pip3",
+             "install",
+             "-r",
+                os.path.join(repo_location, "requirements.txt")
+             ]
+        )
     inventory_name = create_inventory(device_ip)
     run_ansible(inventory_name, tag, repo_location)
 
 
 if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter
-<<<<<<< HEAD
     main()
-=======
-    main()
->>>>>>> aa300d74ee9fd168e6b514ff555347c6723138c1
