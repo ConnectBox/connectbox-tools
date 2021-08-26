@@ -102,7 +102,7 @@ def get_device_ip_and_type():
 def create_inventory(device_ip):
     click.secho("Creating ansible inventory", fg="blue", bold=True)
     inventory_str = \
-        "%s deploy_sample_content=False do_image_preparation=False\n" % \
+        "%s deploy_sample_content=False do_image_preparation=True\n" % \
         (device_ip,)
     inventory_fd, inventory_name = tempfile.mkstemp()
     os.pwrite(inventory_fd, inventory_str.encode("utf-8"), 0)
