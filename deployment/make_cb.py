@@ -114,14 +114,11 @@ def run_ansible(inventory, tag, repo_location, i, arg):
     click.secho("Running ansible", fg="blue", bold=True)
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
-    if i > 1 :
-        j = 1
-        a = ""
-        while j < (i +1):
-            a = a arg[j]
-            if i != j:
-                a = a + ", "
-            else: a = a + "site.yml"
+    a = ""
+    a = click.style("Enter other build options (separated by , )",
+                           fg="blue", bold=True)
+    if a != "":
+      a = a + "site.yml"
     else:
         a = "site.yml"
     subprocess.run(
@@ -153,16 +150,9 @@ def run_ansible(inventory, tag, repo_location, i, arg):
               help="Name of this release")
 
 def main(tag, update_ansible):
-    j = 0
-    i = len(sys:argv)
-    for j, arg_val in enumerate(sys.argv):
-        arg[j] = arg_val
-        print(f"Arguments passed {j:>6}: {arg[j]}")
     device_ip, device_type = get_device_ip_and_type()
     #set default repo_location
     repo_location = "connectbox-pi"
-
-
 
     # If the ansible path doesn't exist, then update_ansible 
     ansible_path = Path(os.getcwd() + "/connectbox-pi/ansible").expanduser()
