@@ -110,19 +110,25 @@ def create_inventory(device_ip):
     return inventory_name
 
 
-def run_ansible(inventory, tag, repo_location, i, arg):
+def run_ansible(inventory, tag, repo_location):
     click.secho("Running ansible", fg="blue", bold=True)
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
     a = ""
     a = click.style("Enter other build options (separated by , )",
-                           fg="blue", bold=True)
-    if a != "":
-      a = a + "site.yml"
+                           fg="white", bold=True)
+    if a == "":
+      a = "-u root"
     else:
-        a = "site.yml"
+        a = a.lstrip(' ')
+        b = len(a)
+        if b>0:
+            if a[b-1] == ",":
+                a[b-1] = ""
+
     subprocess.run(
         ["ansible-playbook",
+         "%s" % (a,),
          "-i",
          inventory,
          "-e",
@@ -131,7 +137,7 @@ def run_ansible(inventory, tag, repo_location, i, arg):
          "connectbox_version=%s" % (tag,),
          "-e",
          "ansible_python_interpreter=/usr/bin/python3",
-         a
+         "site.yml"
         ], cwd=os.path.join(repo_location, "ansible")
     )
 
@@ -172,7 +178,7 @@ def main(tag, update_ansible):
              ]
         )
     inventory_name = create_inventory(device_ip)
-    run_ansible(inventory_name, tag, repo_location, i, arg)
+    run_ansible(inventory_name, tag, repo_location)
 
 
 if __name__ == "__main__":
