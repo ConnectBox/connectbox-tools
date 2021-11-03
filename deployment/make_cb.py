@@ -110,10 +110,20 @@ def create_inventory(device_ip):
     return inventory_name
 
 
-def run_ansible(inventory, tag, repo_location):
+def run_ansible(inventory, tag, repo_location, i, arg):
     click.secho("Running ansible", fg="blue", bold=True)
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
+    if i > 1 :
+        j = 1
+        a = ""
+        while j < (i +1):
+            a = a arg[j]
+            if i != j:
+                a = a + ", "
+            else: a = a + "site.yml"
+    else:
+        a = "site.yml"
     subprocess.run(
         ["ansible-playbook",
          "-i",
@@ -124,7 +134,7 @@ def run_ansible(inventory, tag, repo_location):
          "connectbox_version=%s" % (tag,),
          "-e",
          "ansible_python_interpreter=/usr/bin/python3",
-         "site.yml"
+         a
         ], cwd=os.path.join(repo_location, "ansible")
     )
 
@@ -143,6 +153,11 @@ def run_ansible(inventory, tag, repo_location):
               help="Name of this release")
 
 def main(tag, update_ansible):
+    j = 0
+    i = len(sys:argv)
+    for j, arg_val in enumerate(sys.argv):
+        arg[j] = arg_val
+        print(f"Arguments passed {j:>6}: {arg[j]}")
     device_ip, device_type = get_device_ip_and_type()
     #set default repo_location
     repo_location = "connectbox-pi"
@@ -167,7 +182,7 @@ def main(tag, update_ansible):
              ]
         )
     inventory_name = create_inventory(device_ip)
-    run_ansible(inventory_name, tag, repo_location)
+    run_ansible(inventory_name, tag, repo_location, i, arg)
 
 
 if __name__ == "__main__":
