@@ -172,6 +172,10 @@ def main(tag, update_ansible, params):
              ]
         )
     inventory_name = create_inventory(device_ip)
+    # The params string must contain a valid ansible option or the run_ansible() call will fail
+    #  Here we add an innocuous parameter if the string was empty
+    if len(params)==0: 
+        params = "-e hello=world"
     run_ansible(inventory_name, tag, repo_location, params)
 
 
