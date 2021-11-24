@@ -110,25 +110,14 @@ def create_inventory(device_ip):
     return inventory_name
 
 
-def run_ansible(inventory, tag, repo_location):
+def run_ansible(inventory, tag, repo_location, params):
     click.secho("Running ansible", fg="blue", bold=True)
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
-    a = ""
-    a = click.style("Enter other build options (separated by , )",
-                           fg="white", bold=True)
-    if a == "":
-      a = "-u root"
-    else:
-        a = a.lstrip(' ')
-        b = len(a)
-        if b>0:
-            if a[b-1] == ",":
-                a[b-1] = ""
 
     subprocess.run(
         ["ansible-playbook",
-         "%s" % (a,),
+         "%s" % (params,),
          "-i",
          inventory,
          "-e",
@@ -155,7 +144,12 @@ def run_ansible(inventory, tag, repo_location):
               default=lambda: datetime.utcnow().strftime("v%Y%m%d"),
               help="Name of this release")
 
-def main(tag, update_ansible):
+@click.option("--params",
+              prompt="Enter any ansible command line options in ansible command line format\n",
+              default="",
+              help="Build options")
+
+def main(tag, update_ansible, params):
     device_ip, device_type = get_device_ip_and_type()
     #set default repo_location
     repo_location = "connectbox-pi"
@@ -178,7 +172,7 @@ def main(tag, update_ansible):
              ]
         )
     inventory_name = create_inventory(device_ip)
-    run_ansible(inventory_name, tag, repo_location)
+    run_ansible(inventory_name, tag, repo_location, params)
 
 
 if __name__ == "__main__":
