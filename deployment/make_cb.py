@@ -30,7 +30,7 @@ NEO_TYPE = "NanoPi NEO"
 RPI_TYPE = "Raspberry Pi"
 UNKNOWN_TYPE = "??"
 
-def checkout_ansible_repo():
+def checkout_ansible_repo(branch="main"):
     repo = "connectbox-pi"
     click.secho("Deleting any previous %s build directory" % (repo,),
                 fg="blue", bold=True)
@@ -43,6 +43,9 @@ def checkout_ansible_repo():
         ["git", "clone", "--depth=1", repo_addr],
         check=True
     )
+    os.system('cd connectbox-pi' )
+    os.system("git checkout -B "+str(branch))
+    os.system('cd ../')
     return repo
 
 
@@ -110,14 +113,26 @@ def create_inventory(device_ip):
     return inventory_name
 
 
-def run_ansible(inventory, tag, repo_location, params):
-    click.secho("Running ansible", fg="blue", bold=True)
+def run_ansible(inventory, tag, repo_location):
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
+    a = click.style("Enter other build options (separated by , )",
+                           fg="white", bold=True)
+    a = click.prompt(a, type=str,default="")
+    click.secho("Running ansible "+a, fg="blue", bold=True)
+    if a == "":
+       a = "site.yml"
+    else:
+       a = a.lstrip(' ')
+       b = len(a)
+       if b>0:
+         if a[b-1] == ",":
+           a[b-1]=""
+       a = 'site,yml, -extra-vars "{{a}}"'
 
     subprocess.run(
         ["ansible-playbook",
-         "%s" % (params,),
+         "-u root",
          "-i",
          inventory,
          "-e",
@@ -126,7 +141,7 @@ def run_ansible(inventory, tag, repo_location, params):
          "connectbox_version=%s" % (tag,),
          "-e",
          "ansible_python_interpreter=/usr/bin/python3",
-         "site.yml"
+         a
         ], cwd=os.path.join(repo_location, "ansible")
     )
 
@@ -144,12 +159,7 @@ def run_ansible(inventory, tag, repo_location, params):
               default=lambda: datetime.utcnow().strftime("v%Y%m%d"),
               help="Name of this release")
 
-@click.option("--params",
-              prompt="Enter any ansible command line options in ansible command line format\n",
-              default="",
-              help="Build options")
-
-def main(tag, update_ansible, params):
+def main(tag, update_ansible):
     device_ip, device_type = get_device_ip_and_type()
     #set default repo_location
     repo_location = "connectbox-pi"
@@ -161,7 +171,12 @@ def main(tag, update_ansible, params):
 
 
     if update_ansible == "Y" or update_ansible == "y":
-        repo_location = checkout_ansible_repo()
+        text = click.style("Enter branch to build (main)",
+                           fg="blue", bold=True)
+        response = click.prompt(text)
+        if response == "":
+            response = "main"
+        repo_location = checkout_ansible_repo(response)
     
     # install packages needed for connectbox build
         subprocess.run(
@@ -172,11 +187,7 @@ def main(tag, update_ansible, params):
              ]
         )
     inventory_name = create_inventory(device_ip)
-    # The params string must contain a valid ansible option or the run_ansible() call will fail
-    #  Here we add an innocuous parameter if the string was empty
-    if len(params)==0: 
-        params = "-e hello=world"
-    run_ansible(inventory_name, tag, repo_location, params)
+    run_ansible(inventory_name, tag, repo_location)
 
 
 if __name__ == "__main__":
