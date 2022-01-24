@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Create local connectbox image
-       
+
 """
 
 from datetime import datetime
@@ -119,7 +119,6 @@ def run_ansible(inventory, tag, repo_location):
     a = click.style("Enter other build options (separated by , )",
                            fg="white", bold=True)
     a = click.prompt(a, type=str,default="")
-    click.secho("Running ansible "+a, fg="blue", bold=True)
     if a == "":
        a = "site.yml"
     else:
@@ -128,7 +127,8 @@ def run_ansible(inventory, tag, repo_location):
        if b>0:
          if a[b-1] == ",":
            a[b-1]=""
-       a = 'site,yml, -extra-vars "{{a}}"'
+       a = "-e "+a+", site.yml"
+    click.secho("Running ansible "+a, fg="blue", bold=True)
 
     subprocess.run(
         ["ansible-playbook",
@@ -177,7 +177,7 @@ def main(tag, update_ansible):
         if response == "":
             response = "main"
         repo_location = checkout_ansible_repo(response)
-    
+
     # install packages needed for connectbox build
         subprocess.run(
             ["pip3",

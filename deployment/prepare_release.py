@@ -144,6 +144,21 @@ def run_ansible(inventory, tag, repo_location):
     click.secho("Running ansible", fg="blue", bold=True)
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
+    a = click.style("Enter other build options (seperated by , and enclosed in quotes)",
+                  fg="white", bold=True)
+    a = click.primpt(a, type=str, default="")
+
+    if a == "":
+        a = "-e"
+    else:
+        a = a.lstrip(" ")
+        b = len(a)
+        if b > 0:
+            if ap[b-1] != ",":
+                a = a + ","
+        a = a + " -e"
+    click.secho('running: "ansible-playbook", "-u", "root", "-i", ïnventory", a, "ansible-user=root", "-e", "connectbox_version={{ tag }}", "-e", "ansible-python-interpreter=/usr/bin/python3", "site.yml"')
+    
     subprocess.run(
         ["ansible-playbook",
          "-i",
