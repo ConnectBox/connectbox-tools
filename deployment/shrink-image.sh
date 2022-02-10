@@ -7,7 +7,7 @@
 #  make an image that can be copied to new devices.
 #
 #  Usage: shrink-image.sh /dev/sdb connectbox.img
-#  
+# 
 #  /dev/sdb is the sd card block device
 #  connectbox.img will be the resulting image
 #
@@ -170,7 +170,7 @@ then
 
 fi
 
-if [ $sd_partcount -gt 1 ]
+if [ $sd_partcount -gt 0 ]
 then
   echo "preparing root device $root_dev"
 
@@ -273,13 +273,13 @@ fi          #end of $sd_partcount -eq 3
 rm -rf $tmp_path
 rm -rf /tmp/temp
 
-if [ $sd_partcount -gt 1 ]
+if [ $sd_partcount -gt 0 ]
 then
 
   # make sure the filesystem is clean (for sanity)
 
   a= $(awk '/^Disklabel type: / { print $3 }' /tmp/fdisk_out)
-  if [ "$a" == "dos" | $sd_partcount -gt 2]
+  if [ "$a" == "dos" | $sd_partcount -gt 2 ]
   then
      echo "skipping resize of DOS partiton $root_dev maybe due to partiton 3 -cant be done"
   else
@@ -288,7 +288,7 @@ then
   resize2fs -fpM $root_dev
   fi
 
-fi   #end of if $sd_partcount -gt 1 then;
+fi   #end of if $sd_partcount -gt 0 then;
 
 if [ $sd_partcount -eq 3 ]
 then
@@ -300,7 +300,7 @@ then
   resize2fs -fpM $user_dev
 fi
 
-if [ $sd_partcount -gt 1 ]
+if [ $sd_partcount -gt 0 ]
 then
   # get more details about the disk
   sd_block_size=$(cat $sd_sysfs/queue/logical_block_size)

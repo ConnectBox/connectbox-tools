@@ -1,0 +1,132 @@
+---
+# These parameters apply to all hosts. While this would normally be
+#  put in as host_vars, the IP address of the device will be different
+#  for each deployment, so it's easier to put it here.
+
+connectbox_version: "{{ 'dev-%y%m%d' | strftime }}"
+
+# Parameterised to allow overriding during CI builds, where we want to
+#  test some client-facing capabilities but do not have a wifi interface
+client_facing_if: "wlan0"
+eth_facing_if: "wlan1"
+SSID_Box: "TheWell - Free WiFi!"
+root_partition_size: "1GB"
+
+# Client facing if stuff is defined here because we have a circular dependency
+# in that dns-dhcp depends
+#  on the IP address for wlan0 that's defined in the network-interfaces role
+#  but network-interfaces needs dnsmasq to be installed (which is done by the
+#  dns-dhcp role)
+client_facing_if_ip_address: 10.129.0.1
+client_facing_if_netmask: 255.255.0.0
+# Samsung J3 and friends expect a non-private IP address for their internet
+#  connectivity checks. It doesn't need to be routable, so we pick something.
+non_private_captive_portal_ip: 172.217.3.174
+hosts_requiring_non_private_captive_portal_ip:
+- clients1.google.com
+- clients3.google.com
+- connectivitycheck.gstatic.com
+- connectivitycheck.android.com
+
+captiveportal_listen_port: 5001
+
+# Used to serve dns on LAN in developer mode, principally for testing.
+# In situations where there are multiple wired ethernet interfaces, this is
+#  not necessarily the same interface as the one used for SSH.
+
+aws_instance: False
+
+lan_dns_if: eth0
+wifi_configurator_virtualenv_dir: /usr/local/connectbox/wifi_configurator_venv
+
+wifi_data_check_turnoff: www.gowifi.org
+
+connectbox_web_root: /var/www/connectbox
+connectbox_default_content_root: "{{ connectbox_web_root }}/connectbox_default"
+connectbox_enhanced_content_root: "/var/www/enhanced/content/www"
+connectbox_enhanced_admin_root: "/var/www/enhanced/admin/dist"
+connectbox_admin_root: "{{ connectbox_web_root }}/admin"
+connectbox_app_root: "{{ connectbox_web_root }}/app"
+connectbox_virtualenv: "{{ connectbox_web_root }}/connectbox_virtualenv"
+connectbox_config_root: /etc/connectbox
+connectbox_usb_files_root: /media/usb0
+connectbox_admin_credentials: admin:$apr1$CBOX2018$RlXBoHRRoiG3vMC7PS07q.
+
+connectbox_default_hostname: TheWell
+lcd_brand: connecttbox_default_hostname
+connectbox_logo: well_logo.png
+alternative_lcd_logo: True
+
+connectbox_log_dir: /var/log/connectbox
+connectbox_access_log: "{{ connectbox_log_dir }}/connectbox-access.log"
+connectbox_error_log:  "{{ connectbox_log_dir }}/connectbox-error.log"
+
+# External Repo references
+access_log_analyzer_repo: https://github.com/ConnectBox/access-log-analyzer.git
+access_log_repo_rev: "HEAD"
+connectbox_client_repo: https://github.com/ConnectBox/connectbox-react-icon-client.git
+connectbox_repo_rev: "HEAD"
+hat_services_repo: https://github.com/ConnectBox/Rpi.GPIO_NP_CB
+hat_service_repo_rev: "HEAD"
+moodle_repo: 'https://github.com/RT-coding-team/the-well-moodle310.git'
+moodle_repo_rev: "HEAD"
+sample_content_repo: https://github.com/ConnectBox/connectbox-sample-content.git
+sample_repo_rev: "HEAD"
+
+connectbox_client_path: published/
+connectbox_system_password: "connectbox"
+build_moodle: True
+enhanced_interface: True
+# Note: for Bullseye use 7.4, for Buster use 7.3 for Stretch use 7.0
+php_version: 7.4
+
+
+client_ssid: "Default"
+client_wifipassword: "Default1"
+wireless_country_code: "US"
+
+
+nginx_log_dir: /var/log/nginx
+
+nginx_admin_block: |
+      location /admin/api {
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header Host $http_host;
+        proxy_redirect off;
+        proxy_pass http://127.0.0.1:{{ gunicorn_listen_port }}/admin/api;
+        # Never cache
+        expires -1;
+      }
+
+      location /__connectbox_assets__ {
+        alias {{ connectbox_default_content_root }};
+        location ~ \.json$ {
+          expires -1;
+        }
+      }
+
+nginx_chat_block: |
+    location /chat {
+      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+      proxy_set_header Host $http_host;
+      proxy_redirect off;
+      proxy_pass http://127.0.0.1:{{ gunicorn_listen_port }}/chat;
+      # Never cache
+      expires -1;
+    }
+
+# Don't perform image prep tasks unless overridden
+do_image_preparation: False
+
+firewall_v4_group_rules:
+  200 allow ssh:
+    - -A INPUT -p tcp --dport ssh -j ACCEPT
+  300 allow dhcp:
+    - -A INPUT -p udp --dport bootps -j ACCEPT
+  350 allow dns:
+    - -A INPUT -p udp --dport domain -j ACCEPT
+    - -A INPUT -p tcp --dport domain -j ACCEPT
+  375 allow mdns broadcasts:
+    - -A INPUT -p udp --dport mdns -j ACCEPT
+  400 allow web traffic:
+    - -A INPUT -p tcp --dport http -j ACCEPT

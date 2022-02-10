@@ -108,6 +108,7 @@ def create_inventory(device_ip):
         "%s deploy_sample_content=False do_image_preparation=True\n" % \
         (device_ip,)
     inventory_fd, inventory_name = tempfile.mkstemp()
+
     os.pwrite(inventory_fd, inventory_str.encode("utf-8"), 0)
     os.close(inventory_fd)
     return inventory_name
@@ -116,22 +117,22 @@ def create_inventory(device_ip):
 def run_ansible(inventory, tag, repo_location):
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
-    a = click.style("Enter other build options (separated by , )",
+    a = click.style("Enter other build options (separated by , and enclosed in quotes )",
                            fg="white", bold=True)
     a = click.prompt(a, type=str,default="")
     if a == "":
-       a = "site.yml"
+       a = '"-v"'
     else:
        a = a.lstrip(' ')
        b = len(a)
-       if b>0:
+       if b>2:
          if a[b-1] == ",":
-           a[b-1]=""
-       a = "-e "+a+", site.yml"
-    click.secho("Running ansible "+a, fg="blue", bold=True)
-
+           a[b-1] = a[b-2:]
+       if a == "": a='"-v"'
+    click.secho('running: "ansible-playbook", '+ a +', "-u","root", "-i", "inventory", "-e", "ansible_user=root", "-e", "connectbox_version=%s" % (tag,), "-e", "ansible-python-interpreter=/usr/bin/python3", site.yml')
     subprocess.run(
         ["ansible-playbook",
+#         "%s" % (a),
          "-u root",
          "-i",
          inventory,
@@ -141,8 +142,8 @@ def run_ansible(inventory, tag, repo_location):
          "connectbox_version=%s" % (tag,),
          "-e",
          "ansible_python_interpreter=/usr/bin/python3",
-         a
-        ], cwd=os.path.join(repo_location, "ansible")
+         "site.yml"
+          ], cwd=os.path.join(repo_location, "ansible")
     )
 
 
@@ -176,7 +177,7 @@ def main(tag, update_ansible):
         response = click.prompt(text)
         if response == "":
             response = "main"
-        repo_location = checkout_ansible_repo(response)
+        repo_name = checkout_ansible_repo(response)
 
     # install packages needed for connectbox build
         subprocess.run(
