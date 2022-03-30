@@ -28,7 +28,8 @@ MAIN_REPO = "connectbox-pi"
 
 NEO_TYPE = "NanoPi NEO"
 RPI_TYPE = "Raspberry Pi"
-UNKNOWN_TYPE = "??"
+OPI_TYPE = "OrangePi Zero2"
+UNKNOWN_TYPE = "?? "
 
 def checkout_ansible_repo(branch="main"):
     repo = "connectbox-pi"
@@ -56,7 +57,10 @@ def device_type_from_model_str(model_str):
     if RPI_TYPE in model_str:
         return RPI_TYPE
 
-    return UNKNOWN_TYPE
+    if OPI_TYPE in model_str:
+        return OPI_TYPE
+
+    return UNKNOWN_TYPE+"{{ model_str }}"
 
 
 def get_device_ip_and_type():
