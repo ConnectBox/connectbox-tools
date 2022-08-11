@@ -125,7 +125,7 @@ def run_ansible(inventory, tag, repo_location):
                            fg="white", bold=True)
     a = click.prompt(a, type=str, default="n")
     if a in ("y", "Y", "yes", "Yes"):
-        a = '-e connectbox_default_hostname=TheWell -e wireless_country_code=US, -e build_moodle=true, -e lcd_logo=lcdwell.png'
+        a = '-e connectbox_default_hostname=TheWell -e wireless_country_code=US, -e build_moodle=true, -e lcd_logo=lcdwell_logo.png'
     else:
         a = click.style("Enter other build options (separated by , )",
                            fg="white", bold=True)
