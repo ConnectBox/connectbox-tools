@@ -125,7 +125,7 @@ def run_ansible(inventory, tag, repo_location):
                            fg="white", bold=True)
     a = click.prompt(a, type=str,default="")
     if a == "":
-       a = '"-v"'
+       a = '-v'
 
     click.secho("running: ansible-playbook "+ a +" -i inventory -e ansible_user=root -e connectbox_version=%s % (tag,) -e ansible-python-interpreter=/usr/bin/python3 site.yml")
     subprocess.run(
