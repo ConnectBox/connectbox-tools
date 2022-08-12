@@ -121,26 +121,39 @@ def create_inventory(device_ip):
 def run_ansible(inventory, tag, repo_location):
     # release builds always run with the root account, even on raspbian.
     # the ansible_user here overrides the group_vars/raspbian variables
-    a = click.style("Enter other ansible-playbook build options (no commas, no quotes)",
+    a = click.style("Do you want to build TheWell? (y/n):",
                            fg="white", bold=True)
-    a = click.prompt(a, type=str,default="")
-    if a == "":
-       a = '-v'
+    a = click.prompt(a, type=str, default="n")
+    if a in ("y", "Y", "yes", "Yes"):
+        a = '-e connectbox_default_hostname=TheWell -e wireless_country_code=US, -e build_moodle=true, -e lcd_logo=lcdwell_logo.png'
+    else:
+        a = click.style("Enter other build options (separated by , )",
+                           fg="white", bold=True)
+        a = click.prompt(a, type=str,default="")
+        if a == "":
+           a = '-v'
+        else:
+           a = a.lstrip(' ')
+           b = len(a)
+           if b>2:
+               if a[b-1] == ",":
+                   a = a[0:b-2]
 
-    click.secho("running: ansible-playbook "+ a +" -i inventory -e ansible_user=root -e connectbox_version=%s % (tag,) -e ansible-python-interpreter=/usr/bin/python3 site.yml")
+    click.secho('running: "ansible-playbook", '+ a +', "-u","root", "-i", "inventory", "-e", "ansible_user=root", "-e", "connectbox_version=%s" % (tag,), "-e", "ansible-python-interpreter=/usr/bin/python3", site.yml')
     subprocess.run(
-        ["ansible-playbook",
-         "%s" % (a),
-         "-i",
-         inventory,
-         "-e",
-         "ansible_user=root",
-         "-e",
-         "connectbox_version=%s" % (tag,),
-         "-e",
-         "ansible_python_interpreter=/usr/bin/python3",
-         "site.yml"
-          ], cwd=os.path.join(repo_location, "ansible")
+         ["ansible-playbook",
+          "%s" % (a,),
+          "-i",
+          inventory,
+          "-e",
+          "ansible_user=root",
+          "-e",
+          "connectbox_version=%s" % (tag,),
+          "-e",
+          "ansible_python_interpreter=/usr/bin/python3",
+          "connectbox-pi/ansible/site.yml"
+            ]              # close out the ansible script here you must be in the ansible directory.
+#           ], cwd=os.path.join(repo_location, "ansible")
     )
 
 
@@ -164,6 +177,7 @@ def main(tag, update_ansible):
 
     # If the ansible path doesn't exist, then update_ansible 
     ansible_path = Path(os.getcwd() + "/connectbox-pi/ansible").expanduser()
+    print("ansible_path",ansible_path)
     if not ansible_path.exists():
         update_ansible = "Y"
 
@@ -174,7 +188,7 @@ def main(tag, update_ansible):
         response = click.prompt(text)
         if response == "":
             response = "main"
-        repo_name = checkout_ansible_repo(response)
+        repo_location = checkout_ansible_repo(response)
 
     # install packages needed for connectbox build
         subprocess.run(
@@ -184,9 +198,12 @@ def main(tag, update_ansible):
                 os.path.join(repo_location, "requirements.txt")
              ]
         )
+    os.system('cd '+str(ansible_path))
+
     inventory_name = create_inventory(device_ip)
     run_ansible(inventory_name, tag, repo_location)
-
+    orig_path=str(ansible_path)[0:(str(ansible_path).find(repo_location)-1)]
+    os.system('cd '+orig_path)
 
 if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter
