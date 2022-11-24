@@ -68,8 +68,8 @@ connectbox_client_repo: https://github.com/ConnectBox/connectbox-react-icon-clie
 connectbox_repo_rev: "HEAD"
 hat_services_repo: https://github.com/ConnectBox/Rpi.GPIO_NP_CB
 hat_service_repo_rev: "HEAD"
-moodle_repo: 'https://github.com/RT-coding-team/the-well-moodle310.git'
-moodle_repo_rev: "HEAD"
+
+
 sample_content_repo: https://github.com/ConnectBox/connectbox-sample-content.git
 sample_repo_rev: "HEAD"
 
