@@ -1,2 +1,2 @@
 requests==2.12.1
-PyYAML==3.12
+PyYAML==5.4
