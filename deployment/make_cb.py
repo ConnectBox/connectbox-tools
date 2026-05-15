@@ -20,7 +20,7 @@ CONNECTBOX_REPOS = [
     "connectbox-react-icon-client",
     "connectbox-access-log-analyzer",
     "simple-offline-captive-portal",
-    "wifi-configurator",
+    "connectbox-wifi-configurator",
 ]
 # while testing
 GITHUB_OWNER = "ConnectBox"

@@ -21,7 +21,7 @@ CONNECTBOX_REPOS = [
     "connectbox-react-icon-client",
     "connectbox-access-log-analyzer",
     "simple-offline-captive-portal",
-    "wifi-configurator",
+    "connectbox-wifi-configurator",
 ]
 # while testing
 #CONNECTBOX_REPOS = ["server-services"]
@@ -146,7 +146,7 @@ def run_ansible(inventory, tag, repo_location):
     # the ansible_user here overrides the group_vars/raspbian variables
     a = click.style("Enter other build options (seperated by , and enclosed in quotes)",
                   fg="white", bold=True)
-    a = click.primpt(a, type=str, default="")
+    a = click.prompt(a, type=str, default="")
 
     if a == "":
         a = "-e"
@@ -154,7 +154,7 @@ def run_ansible(inventory, tag, repo_location):
         a = a.lstrip(" ")
         b = len(a)
         if b > 0:
-            if ap[b-1] != ",":
+            if a[b-1] != ",":
                 a = a + ","
         a = a + " -e"
     click.secho('running: "ansible-playbook", "-u", "root", "-i", ïnventory", a, "ansible-user=root", "-e", "connectbox_version={{ tag }}", "-e", "ansible-python-interpreter=/usr/bin/python3", "site.yml"')
