@@ -18,7 +18,7 @@ CONNECTBOX_REPOS = [
     "connectbox-pi",
     "connectbox-hat-service",
     "connectbox-react-icon-client",
-    "access-log-analyzer",
+    "connectbox-access-log-analyzer",
     "simple-offline-captive-portal",
     "wifi-configurator",
 ]
