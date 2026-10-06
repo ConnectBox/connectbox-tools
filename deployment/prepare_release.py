@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 """
 Drive release process for connectbox images
 """
@@ -8,11 +8,19 @@ import ipaddress
 import os
 from pathlib import Path
 import shutil
+import shlex
 import subprocess
 import tempfile
 import time
 import click
 from github import Github
+
+# Shared with the local-build script in this folder
+from make_cb import build_options, install_ansible_requirements
+
+# shrink-image.sh lives next to this script; finished images go to ./Images
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+IMAGES_DIR = os.path.join(SCRIPT_DIR, "Images")
 
 
 CONNECTBOX_REPOS = [
@@ -141,35 +149,23 @@ def create_inventory(device_ip):
 
 
 def run_ansible(inventory, tag, repo_location):
+    """
+    Run site.yml from connectbox-pi/ansible (so ansible/ansible.cfg applies)
+    as root - release builds always run as root, even on Raspberry Pi OS.
+    The build options asked for are now actually passed on (they used to be
+    read and then ignored).
+    """
     click.secho("Running ansible", fg="blue", bold=True)
-    # release builds always run with the root account, even on raspbian.
-    # the ansible_user here overrides the group_vars/raspbian variables
-    a = click.style("Enter other build options (seperated by , and enclosed in quotes)",
-                  fg="white", bold=True)
-    a = click.prompt(a, type=str, default="")
-
-    if a == "":
-        a = "-e"
-    else:
-        a = a.lstrip(" ")
-        b = len(a)
-        if b > 0:
-            if a[b-1] != ",":
-                a = a + ","
-        a = a + " -e"
-    click.secho('running: "ansible-playbook", "-u", "root", "-i", ïnventory", a, "ansible-user=root", "-e", "connectbox_version={{ tag }}", "-e", "ansible-python-interpreter=/usr/bin/python3", "site.yml"')
-    
-    subprocess.run(
-        ["ansible-playbook",
-         "-i",
-         inventory,
-         "-e",
-         "ansible_user=root",
-         "-e",
-         "connectbox_version=%s" % (tag,),
-         "site.yml"
-        ], cwd=os.path.join(repo_location, "ansible")
-    )
+    cmd = (["ansible-playbook"] + build_options() +
+           ["-i", inventory,
+            "-e", "ansible_user=root",
+            "-e", "connectbox_version=%s" % (tag,),
+            "-e", "ansible_python_interpreter=/usr/bin/python3",
+            "site.yml"])
+    ansible_dir = os.path.join(os.path.abspath(repo_location), "ansible")
+    click.secho("running in %s: %s" % (ansible_dir, " ".join(shlex.quote(c) for c in cmd)),
+                fg="blue", bold=True)
+    subprocess.run(cmd, cwd=ansible_dir)
 
 
 def partition_list():
@@ -182,53 +178,68 @@ def partition_list():
             for line in lines[2:]}
 
 
+def new_disk(partitions_before, partitions_after):
+    """
+    The whole-disk device (e.g. "sda") among the block devices that appeared,
+    or None if there is not exactly one.  Partitions (sda1, ...) are not in
+    /sys/block, whole disks are.
+    """
+    disks = sorted(name for name in partitions_after - partitions_before
+                   if os.path.exists("/sys/block/" + name))
+    return disks[0] if len(disks) == 1 else None
+
+
 def create_img_from_sd(tag, device_type):
+    """
+    Wait for the card to be plugged in, confirm which disk it is, unmount
+    anything the desktop mounted from it, and run shrink-image.sh on it.
+    (This used to always shrink /dev/sdb with /vagrant/shrink-image.sh, which
+    only matched the old Vagrant VM; on the build Pi the card is sda.)
+    """
     partitions_before = partition_list()
-    click.secho("Insert SD card from device (you may need to attach it to "
-                "this VM)", fg="blue", bold=True)
+    click.secho("Insert SD card from device (in a USB card reader)",
+                fg="blue", bold=True)
     partitions_after = partitions_before
     while partitions_after == partitions_before:
         time.sleep(1)
         # Check to see if the SD card has appeared in /proc/partitions
         partitions_after = partition_list()
+    time.sleep(3)   # let all of the card's partitions appear
+    partitions_after = partition_list()
 
     print("Additional partition(s) detected: %s." %
-          (", ".join(partitions_after.difference(partitions_before)),))
-    click.pause("Looks like the SD card has been inserted. "
-                "Press any key to continue...")
-    path_to_image = "/tmp/%s_%s.img" % (device_type.replace(" ", "-"), tag,)
+          (", ".join(sorted(partitions_after.difference(partitions_before))),))
+    disk = new_disk(partitions_before, partitions_after) or ""
+    # Always confirm: shrink-image.sh rewrites the disk it is given
+    disk = click.prompt(click.style("Disk to shrink (check with lsblk)", fg="blue", bold=True),
+                        default=disk or None)
+    sd_devpath = "/dev/" + disk.replace("/dev/", "")
+    # Desktops auto-mount the card; shrink-image.sh refuses a mounted card
+    subprocess.run("sudo umount %s?* 2>/dev/null" % (shlex.quote(sd_devpath),), shell=True)
+
+    os.makedirs(IMAGES_DIR, exist_ok=True)
+    path_to_image = os.path.join(IMAGES_DIR, "%s_%s.img" % (device_type.replace(" ", "-"), tag,))
     subprocess.run(
         ["sudo",
-         "/vagrant/shrink-image.sh",
-         "/dev/sdb",
+         os.path.join(SCRIPT_DIR, "shrink-image.sh"),
+         sd_devpath,
          path_to_image
-        ]
+        ],
+        check=True
     )
     return path_to_image
 
 
 def compress_img(path_to_image):
-    # xz in 16.04 doesn't support --threads, but happily ignores it.
-    # When we upgrade to something that does, it'll start working
+    """Compress the image with xz (all cores); returns <path_to_image>.xz."""
     cmd = ["sudo",
            "xz",
            "--threads=0",
            "--extreme",
            path_to_image
           ]
-    # Creates <path_to_image>.xz
-    subprocess.run(cmd)
-    path_to_compressed_image = os.path.join(
-        "/vagrant",
-        "%s.xz" % (os.path.basename(path_to_image),)
-    )
-    cmd = ["sudo",
-           "mv",
-           path_to_image + ".xz",
-           path_to_compressed_image
-          ]
-    subprocess.run(cmd)
-    return path_to_compressed_image
+    subprocess.run(cmd, check=True)
+    return path_to_image + ".xz"
 
 
 @click.command()
@@ -275,14 +286,8 @@ def main(github_token, tag, use_existing_tag, create_image):
 
     if create_image:
         repo_location = checkout_ansible_repo(tag)
-        # install packages needed for connectbox build
-        subprocess.run(
-            ["pip3",
-             "install",
-             "-r",
-             os.path.join(repo_location, "requirements.txt")
-            ]
-        )
+        # install packages needed for connectbox build (only if Ansible is missing)
+        install_ansible_requirements(repo_location)
         inventory_name = create_inventory(device_ip)
         run_ansible(inventory_name, tag, repo_location)
 

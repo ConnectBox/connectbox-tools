@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import shutil
 import subprocess
+import shlex
 import tempfile
 import click
 
@@ -31,7 +32,13 @@ RPI_TYPE = "Raspberry Pi"
 OPI_TYPE = "OrangePi Zero2"
 UNKNOWN_TYPE = "?? "
 
-def checkout_ansible_repo(branch="main"):
+def checkout_ansible_repo(branch="master"):
+    """
+    Fresh shallow clone of connectbox-pi at `branch` (or tag) into ./connectbox-pi.
+    (The old version ran "cd" through os.system, which has no effect on this
+    process, and "git checkout -B" in the wrong directory, so the branch asked
+    for was never built.)
+    """
     repo = "connectbox-pi"
     click.secho("Deleting any previous %s build directory" % (repo,),
                 fg="blue", bold=True)
@@ -41,13 +48,24 @@ def checkout_ansible_repo(branch="main"):
 
     repo_addr = "https://github.com/ConnectBox/connectbox-pi.git"
     subprocess.run(
-        ["git", "clone", "--depth=1", repo_addr],
+        ["git", "clone", "--depth=1", "--branch", branch, repo_addr],
         check=True
     )
-    os.system('cd connectbox-pi' )
-    os.system("git checkout -B "+str(branch))
-    os.system('cd ../')
     return repo
+
+
+def install_ansible_requirements(repo_location):
+    """
+    pip-install connectbox-pi's requirements only when Ansible is missing.
+    On Raspberry Pi OS Bookworm Ansible comes from apt and a system-wide pip
+    install is refused (externally managed environment).
+    """
+    if shutil.which("ansible-playbook"):
+        return
+    subprocess.run(
+        ["pip3", "install", "--user", "-r",
+         os.path.join(repo_location, "requirements.txt")]
+    )
 
 
 def device_type_from_model_str(model_str):
@@ -60,7 +78,7 @@ def device_type_from_model_str(model_str):
     if OPI_TYPE in model_str:
         return OPI_TYPE
 
-    return UNKNOWN_TYPE+"{{ model_str }}"
+    return UNKNOWN_TYPE + model_str.strip("\x00 \n")
 
 
 def get_device_ip_and_type():
@@ -118,43 +136,47 @@ def create_inventory(device_ip):
     return inventory_name
 
 
-def run_ansible(inventory, tag, repo_location):
-    # release builds always run with the root account, even on raspbian.
-    # the ansible_user here overrides the group_vars/raspbian variables
-    a = click.style("Do you want to build TheWell? (y/n):",
-                           fg="white", bold=True)
-    a = click.prompt(a, type=str, default="n")
-    if a in ("y", "Y", "yes", "Yes"):
-        a = '-e connectbox_default_hostname=TheWell -e wireless_country_code=US, -e build_moodle=true, -e lcd_logo=lcdwell_logo.png'
-    else:
-        a = click.style("Enter other build options (separated by , )",
-                           fg="white", bold=True)
-        a = click.prompt(a, type=str,default="")
-        if a == "":
-           a = '-v'
-        else:
-           a = a.lstrip(' ')
-           b = len(a)
-           if b>2:
-               if a[b-1] == ",":
-                   a = a[0:b-2]
+THE_WELL_OPTIONS = ["-e", "connectbox_default_hostname=TheWell",
+                    "-e", "wireless_country_code=US",
+                    "-e", "lcd_logo=lcdwell_logo.png"]
 
-    click.secho('running: "ansible-playbook", '+ a +', "-u","root", "-i", "inventory", "-e", "ansible_user=root", "-e", "connectbox_version=%s" % (tag,), "-e", "ansible-python-interpreter=/usr/bin/python3", site.yml')
-    subprocess.run(
-         ["ansible-playbook",
-          "%s" % (a,),
-          "-i",
-          inventory,
-          "-e",
-          "ansible_user=root",
-          "-e",
-          "connectbox_version=%s" % (tag,),
-          "-e",
-          "ansible_python_interpreter=/usr/bin/python3",
-          "connectbox-pi/ansible/site.yml"
-            ]              # close out the ansible script here you must be in the ansible directory.
-#           ], cwd=os.path.join(repo_location, "ansible")
-    )
+
+def build_options():
+    """
+    Ask for The Well branding or other ansible-playbook options and return
+    them as a list of separate arguments.  Options are typed the way they
+    would be on the command line, e.g.  -e wireless_country_code=AU -v
+    (commas between options, as the old prompt asked for, are also accepted).
+    """
+    answer = click.prompt(click.style("Do you want to build TheWell? (y/n):",
+                                      fg="white", bold=True),
+                          type=str, default="n")
+    if answer.strip().lower() in ("y", "yes"):
+        return list(THE_WELL_OPTIONS)
+    extra = click.prompt(click.style("Enter other build options (e.g. -e wireless_country_code=AU)",
+                                     fg="white", bold=True),
+                         type=str, default="", show_default=False)
+    # a trailing comma on an argument is a separator, not part of a value
+    return [arg.rstrip(",") for arg in shlex.split(extra) if arg.rstrip(",")]
+
+
+def run_ansible(inventory, tag, repo_location):
+    """
+    Run site.yml from connectbox-pi/ansible so that ansible/ansible.cfg
+    (force_handlers, pipelining) applies - it is only read from the current
+    directory.  Release builds always run as root, even on Raspberry Pi OS
+    (the ansible_user here overrides group_vars/raspbian).
+    """
+    cmd = (["ansible-playbook"] + build_options() +
+           ["-i", inventory,
+            "-e", "ansible_user=root",
+            "-e", "connectbox_version=%s" % (tag,),
+            "-e", "ansible_python_interpreter=/usr/bin/python3",
+            "site.yml"])
+    ansible_dir = os.path.join(os.path.abspath(repo_location), "ansible")
+    click.secho("running in %s: %s" % (ansible_dir, " ".join(shlex.quote(c) for c in cmd)),
+                fg="blue", bold=True)
+    subprocess.run(cmd, cwd=ansible_dir)
 
 
 # The following is required to enable the @click commands to run at beginning
@@ -183,27 +205,16 @@ def main(tag, update_ansible):
 
 
     if update_ansible == "Y" or update_ansible == "y":
-        text = click.style("Enter branch to build (main)",
+        text = click.style("Enter branch or tag to build",
                            fg="blue", bold=True)
-        response = click.prompt(text)
-        if response == "":
-            response = "main"
+        response = click.prompt(text, default="master")
         repo_location = checkout_ansible_repo(response)
 
-    # install packages needed for connectbox build
-        subprocess.run(
-            ["pip3",
-             "install",
-             "-r",
-                os.path.join(repo_location, "requirements.txt")
-             ]
-        )
-    os.system('cd '+str(ansible_path))
+    # install packages needed for connectbox build (only if Ansible is missing)
+    install_ansible_requirements(repo_location)
 
     inventory_name = create_inventory(device_ip)
     run_ansible(inventory_name, tag, repo_location)
-    orig_path=str(ansible_path)[0:(str(ansible_path).find(repo_location)-1)]
-    os.system('cd '+orig_path)
 
 if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter
