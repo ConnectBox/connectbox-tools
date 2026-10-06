@@ -136,23 +136,13 @@ def create_inventory(device_ip):
     return inventory_name
 
 
-THE_WELL_OPTIONS = ["-e", "connectbox_default_hostname=TheWell",
-                    "-e", "wireless_country_code=US",
-                    "-e", "lcd_logo=lcdwell_logo.png"]
-
-
 def build_options():
     """
-    Ask for The Well branding or other ansible-playbook options and return
-    them as a list of separate arguments.  Options are typed the way they
-    would be on the command line, e.g.  -e wireless_country_code=AU -v
+    Ask for extra ansible-playbook options and return them as a list of
+    separate arguments.  Options are typed the way they would be on the
+    command line, e.g.  -e wireless_country_code=AU -v
     (commas between options, as the old prompt asked for, are also accepted).
     """
-    answer = click.prompt(click.style("Do you want to build TheWell? (y/n):",
-                                      fg="white", bold=True),
-                          type=str, default="n")
-    if answer.strip().lower() in ("y", "yes"):
-        return list(THE_WELL_OPTIONS)
     extra = click.prompt(click.style("Enter other build options (e.g. -e wireless_country_code=AU)",
                                      fg="white", bold=True),
                          type=str, default="", show_default=False)
