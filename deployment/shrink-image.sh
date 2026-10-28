@@ -278,10 +278,12 @@ then
 
   # make sure the filesystem is clean (for sanity)
 
-  a= $(awk '/^Disklabel type: / { print $3 }' /tmp/fdisk_out)
-  if [ "$a" == "dos" | $sd_partcount -gt 2 ]
+  # Skip only on 3-partition cards (Kirk 2026-10-28).  This line used to be
+  # [ "$a" == "dos" | $sd_partcount -gt 2 ]: the "|" made it two broken
+  # commands, so it never skipped.
+  if [ $sd_partcount -gt 2 ]
   then
-     echo "skipping resize of DOS partiton $root_dev maybe due to partiton 3 -cant be done"
+     echo "skipping resize of $root_dev on a 3-partition card"
   else
   # shrink as small as possible
   echo "resizing $root_dev filesystem..."
