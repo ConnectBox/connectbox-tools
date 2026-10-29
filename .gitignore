@@ -2,3 +2,9 @@
 *.swp
 .vagrant
 *.img.7z
+
+# made on the build host by make_cb.py / shrink-image.sh
+deployment/connectbox-pi/
+deployment/Images/
+*.img
+*.img.sha256
